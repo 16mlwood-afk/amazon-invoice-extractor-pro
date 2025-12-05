@@ -1,0 +1,59 @@
+if (!window.amazonInvoiceDownloader) {
+  window.amazonInvoiceDownloader = {};
+}
+
+const EXTENSION_CONFIG = {
+  SCRIPT_LOADING: {
+    CHECK_INTERVAL_MS: 100,
+    MAX_ATTEMPTS: 10,
+    USE_EXPONENTIAL_BACKOFF: true,
+    INJECTION_TIMEOUT_MS: 10000,
+    POST_INJECTION_ATTEMPTS: 10,
+    POST_INJECTION_CHECK_INTERVAL_MS: 200
+  },
+
+  DOWNLOAD: {
+    DELAY_BETWEEN_INVOICES_MS: 1000,
+    MAX_CONCURRENT_DOWNLOADS: 3,
+    RETRY_ATTEMPTS: 3,
+    RETRY_DELAY_MS: 2000,
+    MAX_RETRIES: 3
+  },
+
+  DOM_QUERIES: {
+    TIMEOUT_MS: 5000,
+    RETRY_ATTEMPTS: 3,
+    RETRY_DELAY_MS: 2000,
+    ELEMENT_CHECK_INTERVAL_MS: 100
+  },
+
+  PAGINATION: {
+    NEXT_PAGE_DELAY_MS: 2000,
+    MAX_PAGES: 100, // Safety limit
+    NAVIGATION_TIMEOUT_MS: 10000
+  },
+
+  ERROR_REPORTING: {
+    MAX_ERRORS_TO_STORE: 50,
+    RECENT_ERROR_WINDOW_MINUTES: 5
+  },
+
+  NETWORK: {
+    REQUEST_TIMEOUT_MS: 30000,
+    MAX_RETRIES: 3,
+    RETRY_DELAY_MS: 1000
+  },
+
+  UI: {
+    PROGRESS_UPDATE_INTERVAL_MS: 500,
+    NOTIFICATION_DURATION_MS: 5000
+  }
+};
+
+// Freeze the config to prevent accidental modifications
+Object.freeze(EXTENSION_CONFIG);
+Object.keys(EXTENSION_CONFIG).forEach(key => {
+  Object.freeze(EXTENSION_CONFIG[key]);
+});
+
+window.amazonInvoiceDownloader.config = EXTENSION_CONFIG;

@@ -1,0 +1,100 @@
+{
+  "manifest_version": 3,
+  "name": "Amazon Invoice Extractor Pro",
+  "version": "2.0.1",
+  "description": "Professional Amazon invoice downloader with multi-marketplace support, advanced queue management, and automated organization",
+  "author": "Deal Detectives",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "downloads",
+    "tabs",
+    "scripting",
+    "notifications"
+  ],
+  "host_permissions": [
+    "*://*.amazon.com/*",
+    "*://*.amazon.de/*",
+    "*://*.amazon.nl/*",
+    "*://*.amazon.fr/*",
+    "*://*.amazon.co.uk/*",
+    "*://*.amazon.it/*",
+    "*://*.amazon.es/*",
+    "*://*.amazon.ca/*",
+    "*://*.amazon.jp/*",
+    "*://*.sellercentral.amazon.com/*",
+    "*://*.sellercentral.amazon.de/*",
+    "*://*.sellercentral.amazon.nl/*",
+    "*://*.sellercentral.amazon.fr/*",
+    "*://*.sellercentral.amazon.co.uk/*",
+    "*://*.sellercentral.amazon.it/*",
+    "*://*.sellercentral.amazon.es/*",
+    "*://*.sellercentral.amazon.ca/*",
+    "*://*.sellercentral.amazon.jp/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.amazon.com/gp/your-account/order-history*",
+        "https://*.amazon.com/-/*/gp/your-account/order-history*",
+        "https://*.amazon.com/your-orders/orders*",
+        "https://*.amazon.com/-/*/your-orders/orders*",
+        "https://*.amazon.com/your-orders/invoice*",
+        "https://*.amazon.de/gp/your-account/order-history*",
+        "https://*.amazon.de/-/*/gp/your-account/order-history*",
+        "https://*.amazon.de/your-orders/orders*",
+        "https://*.amazon.de/-/*/your-orders/orders*",
+        "https://*.amazon.de/your-orders/invoice*",
+        "https://*.amazon.co.uk/gp/your-account/order-history*",
+        "https://*.amazon.co.uk/-/*/gp/your-account/order-history*",
+        "https://*.amazon.co.uk/your-orders/orders*",
+        "https://*.amazon.co.uk/-/*/your-orders/orders*",
+        "https://*.amazon.co.uk/your-orders/invoice*",
+        "https://*.amazon.fr/gp/your-account/order-history*",
+        "https://*.amazon.fr/-/*/gp/your-account/order-history*",
+        "https://*.amazon.fr/your-orders/orders*",
+        "https://*.amazon.fr/-/*/your-orders/orders*",
+        "https://*.amazon.fr/your-orders/invoice*",
+        "https://*.amazon.it/gp/your-account/order-history*",
+        "https://*.amazon.it/-/*/gp/your-account/order-history*",
+        "https://*.amazon.it/your-orders/orders*",
+        "https://*.amazon.it/-/*/your-orders/orders*",
+        "https://*.amazon.it/your-orders/invoice*",
+        "https://*.amazon.es/gp/your-account/order-history*",
+        "https://*.amazon.es/-/*/gp/your-account/order-history*",
+        "https://*.amazon.es/your-orders/orders*",
+        "https://*.amazon.es/-/*/your-orders/orders*",
+        "https://*.amazon.es/your-orders/invoice*",
+        "https://*.amazon.ca/gp/your-account/order-history*",
+        "https://*.amazon.ca/-/*/gp/your-account/order-history*",
+        "https://*.amazon.ca/your-orders/orders*",
+        "https://*.amazon.ca/-/*/your-orders/orders*",
+        "https://*.amazon.ca/your-orders/invoice*"
+      ],
+      "js": [
+        "content/helpers.js",
+        "content/download-manager.js",
+        "pagination-manager.js",
+        "order-scraper.js",
+        "content-main.js"
+      ],
+      "run_at": "document_end"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Amazon Invoice Extractor Pro"
+  },
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  },
+  "icons": {
+    "16": "images/icon16.PNG",
+    "48": "images/icon48.PNG",
+    "128": "images/icon128.PNG"
+  }
+}

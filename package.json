@@ -1,0 +1,54 @@
+{
+  "name": "amazon-invoice-extractor-pro",
+  "version": "2.0.1",
+  "description": "Professional Amazon invoice downloader with multi-marketplace support, advanced queue management, and automated organization",
+  "author": "Deal Detectives",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/deal-detectives/amazon-invoice-extractor-pro.git"
+  },
+  "scripts": {
+    "validate": "node scripts/validate.js",
+    "package": "node scripts/package.js",
+    "deploy": "npm run validate && npm run package && echo 'Extension ready for deployment in dist/'",
+    "clean": "rm -rf dist/",
+    "check-workflow": "node scripts/check-workflow.js"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": [
+    "chrome-extension",
+    "amazon",
+    "invoice",
+    "downloader",
+    "automation",
+    "business",
+    "accounting",
+    "multi-marketplace",
+    "enterprise"
+  ],
+  "manifest": {
+    "version": "3",
+    "permissions": [
+      "activeTab",
+      "storage",
+      "downloads",
+      "tabs",
+      "scripting",
+      "notifications"
+    ],
+    "host_permissions": [
+      "*://*.amazon.com/*",
+      "*://*.amazon.de/*",
+      "*://*.amazon.nl/*",
+      "*://*.amazon.fr/*",
+      "*://*.amazon.co.uk/*",
+      "*://*.amazon.it/*",
+      "*://*.amazon.es/*",
+      "*://*.amazon.ca/*",
+      "*://*.amazon.jp/*"
+    ]
+  }
+}

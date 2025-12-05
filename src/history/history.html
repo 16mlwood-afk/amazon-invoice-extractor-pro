@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Download History - Amazon Invoice Extractor</title>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="options.css">
+  <style>
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .history-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #1a1a1a;
+      margin: 0;
+    }
+    
+    .history-actions {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .stat-card.success {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .stat-card.time {
+      background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%);
+    }
+    
+    .stat-card.recent {
+      background: linear-gradient(135deg, #3f51b5 0%, #5a55ae 100%);
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+    }
+    
+    .history-table-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .history-table thead {
+      background: #f8f9fa;
+      border-bottom: 2px solid #dee2e6;
+    }
+    
+    .history-table th {
+      padding: 16px;
+      text-align: left;
+      font-weight: 600;
+      color: #495057;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .history-table td {
+      padding: 16px;
+      border-bottom: 1px solid #f0f0f0;
+      color: #333;
+    }
+    
+    .history-table tbody tr:hover {
+      background: #f8f9fa;
+      cursor: pointer;
+    }
+    
+    .history-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .status-badge.success {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status-badge.partial {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .status-badge.failed {
+      background: #f8d7da;
+      color: #721c24;
+    }
+    
+    .marketplace-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      background: #e7f3ff;
+      color: #0066cc;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+    }
+    
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 20px;
+      opacity: 0.3;
+    }
+    
+    .empty-state-title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: #333;
+    }
+    
+    .empty-state-text {
+      font-size: 14px;
+      color: #666;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border-radius: 6px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: white;
+      color: #667eea;
+      border: 2px solid #667eea;
+    }
+    
+    .btn-secondary:hover {
+      background: #f8f9fa;
+    }
+    
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    
+    .filter-bar select,
+    .filter-bar input {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .duration-text {
+      color: #666;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <!-- Header -->
+    <div class="history-header">
+      <h1 class="history-title">📊 Download History</h1>
+      <div class="history-actions">
+        <button class="btn btn-secondary" id="clearHistoryBtn">Clear History</button>
+        <button class="btn btn-primary" id="exportHistoryBtn">Export CSV</button>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card">
+        <div class="stat-label">Total Sessions</div>
+        <div class="stat-value" id="totalSessions">0</div>
+      </div>
+      <div class="stat-card success">
+        <div class="stat-label">Total Invoices</div>
+        <div class="stat-value" id="totalInvoices">0</div>
+      </div>
+      <div class="stat-card time">
+        <div class="stat-label">Total Time Saved</div>
+        <div class="stat-value" id="totalTime">0m</div>
+      </div>
+      <div class="stat-card recent">
+        <div class="stat-label">Last Download</div>
+        <div class="stat-value" id="lastDownload" style="font-size: 16px;">Never</div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <select id="marketplaceFilter">
+        <option value="">All Marketplaces</option>
+        <option value="US">US</option>
+        <option value="UK">UK</option>
+        <option value="DE">Germany</option>
+        <option value="FR">France</option>
+        <option value="JP">Japan</option>
+        <option value="CA">Canada</option>
+      </select>
+      <select id="statusFilter">
+        <option value="">All Status</option>
+        <option value="success">Success</option>
+        <option value="partial">Partial</option>
+        <option value="failed">Failed</option>
+      </select>
+      <input type="text" id="searchInput" placeholder="Search by date or order ID...">
+    </div>
+
+    <!-- History Table -->
+    <div class="history-table-container">
+      <table class="history-table">
+        <thead>
+          <tr>
+            <th>Date & Time</th>
+            <th>Marketplace</th>
+            <th>Invoices</th>
+            <th>Duration</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="historyTableBody">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+      
+      <!-- Empty State -->
+      <div id="emptyState" class="empty-state" style="display: none;">
+        <div class="empty-state-icon">📦</div>
+        <div class="empty-state-title">No download history yet</div>
+        <div class="empty-state-text">Your download sessions will appear here once you start downloading invoices.</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="history.js"></script>
+</body>
+</html>

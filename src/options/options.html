@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Amazon Invoice Downloader - Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="options-page">
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <img src="images/logo.png" alt="Logo" class="sidebar-logo" />
+        <h1>Settings</h1>
+      </div>
+
+      <div class="sidebar-nav">
+        <a href="#general" class="nav-item active" data-section="general">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6m8.66-9.66l-5.66 3.46M9 12l-5.66-3.46M20.66 17l-5.66-3.46M9 12l-5.66 3.46"/>
+          </svg>
+          General
+        </a>
+
+        <a href="#downloads" class="nav-item" data-section="downloads">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Downloads
+        </a>
+
+        <a href="#organization" class="nav-item" data-section="organization">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+          Organization
+        </a>
+
+        <a href="#advanced" class="nav-item" data-section="advanced">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+          </svg>
+          Advanced
+        </a>
+
+        <a href="history.html" class="nav-item" target="_blank">📊 History</a>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="version-info">
+          <small>v2.0.0</small>
+        </div>
+      </div>
+    </nav>
+
+    <div class="content">
+      <header class="content-header">
+        <h2 id="section-title">General Settings</h2>
+        <p id="section-description">Configure general behavior and preferences</p>
+      </header>
+
+      <section id="general" class="settings-section active">
+        <h2>General Settings</h2>
+
+        <div class="setting-group">
+          <h3>Notifications & Feedback</h3>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="showNotifications" checked />
+              <label for="showNotifications">Show notifications when downloads complete</label>
+            </div>
+            <div class="setting-description">
+              Display browser notifications for download status updates
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="autoOpenFolder" />
+              <label for="autoOpenFolder">Open downloads folder when complete</label>
+            </div>
+            <div class="setting-description">
+              Automatically open the download folder after all invoices are downloaded
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="soundNotifications" />
+              <label for="soundNotifications">Enable sound notifications</label>
+            </div>
+            <div class="setting-description">
+              Play notification sounds for download events
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>Account Detection</h3>
+
+          <div class="setting-item">
+            <label for="accountType">Account Type Detection</label>
+            <div class="setting-control">
+              <select id="accountType">
+                <option value="auto">Auto-detect (Recommended)</option>
+                <option value="consumer">Always Consumer Account</option>
+                <option value="business">Always Business Account</option>
+              </select>
+            </div>
+            <div class="setting-description">
+              How to determine if you're on a business or consumer Amazon account
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="downloads" class="settings-section">
+        <h2>Download Settings</h2>
+
+        <div class="setting-group">
+          <h3>Performance</h3>
+
+          <div class="setting-item">
+            <label for="maxConcurrent">Concurrent Downloads</label>
+            <div class="setting-control">
+              <input type="range" id="maxConcurrent" min="1" max="10" value="3" step="1" />
+              <span class="range-value" id="maxConcurrentValue">3</span>
+            </div>
+            <div class="setting-description">
+              How many invoices to download simultaneously (1-10). Higher values are faster but may be rate-limited by Amazon.
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <label for="downloadDelay">Delay Between Downloads</label>
+            <div class="setting-control">
+              <select id="downloadDelay">
+                <option value="0">No delay (Fastest)</option>
+                <option value="500">0.5 seconds</option>
+                <option value="1000" selected>1 second (Balanced)</option>
+                <option value="2000">2 seconds</option>
+                <option value="3000">3 seconds (Slowest)</option>
+              </select>
+            </div>
+            <div class="setting-description">
+              Add delay between downloads to avoid being rate-limited by Amazon
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <label for="paginationDelay">Delay Between Pages</label>
+            <div class="setting-control">
+              <select id="paginationDelay">
+                <option value="800">0.8 seconds (Fast)</option>
+                <option value="1500" selected>1.5 seconds (Balanced)</option>
+                <option value="2000">2 seconds</option>
+                <option value="3000">3 seconds (Slow)</option>
+                <option value="5000">5 seconds (Very Slow)</option>
+              </select>
+            </div>
+            <div class="setting-description">
+              Delay between navigating to different order pages during pagination
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>Download Behavior</h3>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="skipDuplicates" checked />
+              <label for="skipDuplicates">Skip invoices already downloaded</label>
+            </div>
+            <div class="setting-description">
+              Check existing files and skip downloads that already exist in your download folder
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="retryFailed" checked />
+              <label for="retryFailed">Auto-retry failed downloads</label>
+            </div>
+            <div class="setting-description">
+              Automatically retry downloads that fail due to network issues
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <label for="maxRetries">Maximum Retries</label>
+            <div class="setting-control">
+              <select id="maxRetries">
+                <option value="1">1 retry</option>
+                <option value="2">2 retries</option>
+                <option value="3" selected>3 retries</option>
+                <option value="5">5 retries</option>
+              </select>
+            </div>
+            <div class="setting-description">
+              Maximum number of retry attempts for failed downloads
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="organization" class="settings-section">
+        <h2>File Organization</h2>
+
+        <div class="setting-group">
+          <h3>Folder Structure</h3>
+
+          <div class="setting-item">
+            <label for="folderStructure">Organization Method</label>
+            <div class="setting-control">
+              <select id="folderStructure">
+                <option value="flat">All in one folder</option>
+                <option value="by-year">Organized by year</option>
+                <option value="by-year-month" selected>Year/Month folders</option>
+                <option value="by-quarter">Year/Quarter folders</option>
+                <option value="by-marketplace">By marketplace</option>
+              </select>
+            </div>
+            <div class="setting-description">
+              <div class="folder-preview" id="folderPreview">
+                Example: Downloads/Amazon_Invoices/2025/11/Invoice_12345.pdf
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <label for="baseFolder">Base Folder Name</label>
+            <div class="setting-control">
+              <input type="text" id="baseFolder" value="Amazon_Invoices" placeholder="Amazon_Invoices" />
+            </div>
+            <div class="setting-description">
+              Name of the main folder where invoices will be saved
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>Filename Format</h3>
+
+          <div class="setting-item">
+            <label for="filenameFormat">Filename Template</label>
+            <div class="setting-control">
+              <select id="filenameFormat">
+                <option value="default" selected>Invoice_{orderId}.pdf</option>
+                <option value="dated">{year}-{month}-{day}_Invoice_{orderId}.pdf</option>
+                <option value="detailed">{marketplace}_{year}{month}{day}_{orderId}.pdf</option>
+                <option value="timestamp">{timestamp}_Invoice_{orderId}.pdf</option>
+              </select>
+            </div>
+            <div class="setting-description">
+              <div class="filename-preview" id="filenamePreview">
+                Example: Invoice_123456789.pdf
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="advanced" class="settings-section">
+        <h2>Advanced Settings</h2>
+
+        <div class="setting-group">
+          <h3>Bandwidth Management</h3>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="adaptiveBandwidth" checked />
+              <label for="adaptiveBandwidth">Adaptive bandwidth management</label>
+            </div>
+            <div class="setting-description">
+              Automatically adjust download speed based on network conditions
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <label for="bandwidthLimit">Bandwidth Limit (KB/s)</label>
+            <div class="setting-control">
+              <input type="number" id="bandwidthLimit" min="0" max="10000" value="0" placeholder="Unlimited" />
+            </div>
+            <div class="setting-description">
+              Limit download speed (0 = unlimited). Useful for background downloads.
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>Data & History</h3>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="saveMetadata" checked />
+              <label for="saveMetadata">Save metadata files</label>
+            </div>
+            <div class="setting-description">
+              Create .json files with order details alongside PDF downloads
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="trackHistory" checked />
+              <label for="trackHistory">Track download history</label>
+            </div>
+            <div class="setting-description">
+              Keep a record of all download sessions and statistics
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group">
+          <h3>Debugging</h3>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="verboseLogging" />
+              <label for="verboseLogging">Verbose logging</label>
+            </div>
+            <div class="setting-description">
+              Enable detailed console logging for troubleshooting
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="debugMode" />
+              <label for="debugMode">Debug mode</label>
+            </div>
+            <div class="setting-description">
+              Show additional debugging information and options
+            </div>
+          </div>
+        </div>
+
+        <div class="setting-group danger">
+          <h3>Danger Zone</h3>
+
+          <div class="setting-item">
+            <button id="clearHistoryBtn" class="btn btn-secondary">
+              <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="m19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              Clear Download History
+            </button>
+            <div class="setting-description">
+              Permanently delete all download history and statistics
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <button id="resetSettingsBtn" class="btn btn-danger">
+              <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+              </svg>
+              Reset All Settings
+            </button>
+            <div class="setting-description">
+              Restore all settings to their default values
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer class="content-footer">
+        <div class="save-status" id="saveStatus"></div>
+        <button id="saveSettingsBtn" class="btn btn-primary">
+          <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Save Settings
+        </button>
+      </footer>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

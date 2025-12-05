@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History View Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+  <style>
+    body { margin: 20px; }
+    .test-controls {
+      margin-bottom: 20px;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    button { margin: 5px; padding: 10px 15px; }
+  </style>
+</head>
+<body>
+  <div class="test-controls">
+    <h3>History View Test Controls</h3>
+    <button id="addMockData">Add Mock History Data</button>
+    <button id="clearHistory">Clear History</button>
+    <button id="toggleHistory">Toggle History View</button>
+    <button id="testGrouping">Test Session Grouping</button>
+  </div>
+
+  <!-- History View (initially hidden) -->
+  <div id="historyView" class="history-view hidden">
+    <header class="history-header">
+      <h2>Download History</h2>
+      <button class="btn-text" id="clearHistory">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="m19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+        Clear All
+      </button>
+    </header>
+
+    <div class="history-list" id="historyList">
+      <!-- History content will be populated here -->
+    </div>
+  </div>
+
+  <!-- Mock Chrome API -->
+  <script>
+    // Mock chrome.storage and runtime for testing
+    window.chrome = {
+      storage: {
+        local: {
+          get: function(keys, callback) {
+            // Mock history data
+            const mockHistory = {
+              downloadHistory: {
+                sessions: [
+                  {
+                    id: 'session_1',
+                    date: new Date().toISOString().split('T')[0],
+                    timestamp: new Date().toISOString(),
+                    marketplace: 'Amazon.com',
+                    invoicesDownloaded: 45,
+                    failed: 2,
+                    total: 47,
+                    duration: 154000,
+                    status: 'completed_with_errors'
+                  },
+                  {
+                    id: 'session_2',
+                    date: new Date(Date.now() - 86400000).toISOString().split('T')[0], // Yesterday
+                    timestamp: new Date(Date.now() - 86400000).toISOString(),
+                    marketplace: 'Amazon.fr',
+                    invoicesDownloaded: 23,
+                    failed: 0,
+                    total: 23,
+                    duration: 78000,
+                    status: 'completed'
+                  },
+                  {
+                    id: 'session_3',
+                    date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0], // Last week
+                    timestamp: new Date(Date.now() - 7 * 86400000).toISOString(),
+                    marketplace: 'Amazon.de',
+                    invoicesDownloaded: 12,
+                    failed: 1,
+                    total: 13,
+                    duration: 45000,
+                    status: 'completed_with_errors'
+                  }
+                ],
+                stats: {
+                  totalInvoices: 80,
+                  totalSessions: 3,
+                  successRate: '91.5%',
+                  averageSessionSize: 26.7,
+                  lastDownload: new Date().toISOString(),
+                  totalDownloadTime: 277000,
+                  marketplaces: new Set(['Amazon.com', 'Amazon.fr', 'Amazon.de']),
+                  dateRange: {
+                    earliest: new Date(Date.now() - 7 * 86400000).toISOString(),
+                    latest: new Date().toISOString()
+                  }
+                }
+              }
+            };
+
+            const result = {};
+            if (typeof keys === 'string' && keys === 'downloadHistory') {
+              result[keys] = mockHistory[keys];
+            } else if (Array.isArray(keys)) {
+              keys.forEach(key => {
+                if (mockHistory[key]) result[key] = mockHistory[key];
+              });
+            }
+
+            setTimeout(() => callback(result), 100);
+          },
+          set: function(data, callback) {
+            setTimeout(() => callback && callback(), 100);
+          },
+          remove: function(keys, callback) {
+            setTimeout(() => callback && callback(), 100);
+          }
+        }
+      },
+      runtime: {
+        sendMessage: function(message, callback) {
+          if (message.action === 'getHistoryStats') {
+            // Mock response
+            setTimeout(() => {
+              const mockSessions = [
+                {
+                  id: 'session_1',
+                  date: new Date().toISOString().split('T')[0],
+                  timestamp: new Date().toISOString(),
+                  marketplace: 'Amazon.com',
+                  invoicesDownloaded: 45,
+                  failed: 2,
+                  total: 47,
+                  duration: 154000,
+                  status: 'completed_with_errors'
+                },
+                {
+                  id: 'session_2',
+                  date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+                  timestamp: new Date(Date.now() - 86400000).toISOString(),
+                  marketplace: 'Amazon.fr',
+                  invoicesDownloaded: 23,
+                  failed: 0,
+                  total: 23,
+                  duration: 78000,
+                  status: 'completed'
+                }
+              ];
+
+              const mockSummary = {
+                totalInvoices: '80',
+                totalSessions: 3,
+                successRate: '91.5%',
+                averageSessionSize: 26.7
+              };
+
+              callback({ sessions: mockSessions, summary: mockSummary });
+            }, 100);
+          } else if (message.action === 'clearHistory') {
+            setTimeout(() => callback({ success: true }), 100);
+          }
+          return true;
+        },
+        lastError: null
+      }
+    };
+
+    // Mock showStatus function
+    window.showStatus = function(message, type) {
+      console.log(`Status: ${message} (${type})`);
+      const statusEl = document.createElement('div');
+      statusEl.textContent = message;
+      statusEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#0891b2'};
+        color: white;
+        padding: 10px 20px;
+        border-radius: 6px;
+        z-index: 1000;
+      `;
+      document.body.appendChild(statusEl);
+      setTimeout(() => document.body.removeChild(statusEl), 3000);
+    };
+  </script>
+
+  <!-- Include the history view functions from popup.js -->
+  <script>
+    function displayHistoryView(sessions, summary) {
+      const historyList = document.getElementById('historyList');
+
+      if (!sessions || sessions.length === 0) {
+        historyList.innerHTML = `
+          <div class="empty-history">
+            <div class="empty-history-icon">📊</div>
+            <div class="empty-history-title">No download history yet</div>
+            <div class="empty-history-text">Your first download will appear here</div>
+          </div>
+        `;
+        return;
+      }
+
+      // Group sessions by time periods
+      const groupedSessions = groupSessionsByTime(sessions);
+
+      // Generate HTML for grouped sessions
+      let html = '';
+
+      // Add grouped sessions
+      Object.keys(groupedSessions).forEach(groupKey => {
+        const group = groupedSessions[groupKey];
+        if (group.sessions.length === 0) return;
+
+        html += `
+          <div class="history-group">
+            <div class="group-header">${group.label}</div>
+            ${group.sessions.map(session => `
+              <div class="history-item" data-session-id="${session.id}">
+                <div class="item-icon">
+                  ${getStatusIcon(session.status)}
+                </div>
+                <div class="item-details">
+                  <div class="item-title">${session.marketplace} - ${getMonthName(session.date)}</div>
+                  <div class="item-meta">
+                    <span>${session.invoicesDownloaded} invoices</span>
+                    <span>${formatDuration(session.duration)}</span>
+                    ${session.failed > 0 ? `<span>${session.failed} failed</span>` : '<span>All succeeded</span>'}
+                  </div>
+                </div>
+                <div class="item-actions">
+                  <button class="btn-icon" title="View Details" onclick="viewSessionDetails('${session.id}')">
+                    👁️
+                  </button>
+                  ${session.failed > 0 ? `
+                    <button class="btn-icon" title="Retry Failed" onclick="retryFailedDownloads('${session.id}')">
+                      🔄
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      });
+
+      // Add stats summary
+      if (summary) {
+        html += `
+          <div class="history-stats">
+            <div class="stat">
+              <span class="stat-value">${summary.totalInvoices}</span>
+              <span class="stat-label">Total Downloads</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">${summary.successRate}</span>
+              <span class="stat-label">Success Rate</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value">${summary.totalSessions}</span>
+              <span class="stat-label">Sessions</span>
+            </div>
+          </div>
+        `;
+      }
+
+      historyList.innerHTML = html;
+    }
+
+    function groupSessionsByTime(sessions) {
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const thisWeek = new Date(today);
+      thisWeek.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
+      const lastWeek = new Date(thisWeek);
+      lastWeek.setDate(thisWeek.getDate() - 7);
+
+      const groups = {
+        today: { label: 'Today', sessions: [] },
+        thisWeek: { label: 'This Week', sessions: [] },
+        lastWeek: { label: 'Last Week', sessions: [] },
+        older: { label: 'Older', sessions: [] }
+      };
+
+      sessions.forEach(session => {
+        const sessionDate = new Date(session.timestamp);
+        const sessionDay = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate());
+
+        if (sessionDay >= today) {
+          groups.today.sessions.push(session);
+        } else if (sessionDay >= thisWeek) {
+          groups.thisWeek.sessions.push(session);
+        } else if (sessionDay >= lastWeek) {
+          groups.lastWeek.sessions.push(session);
+        } else {
+          groups.older.sessions.push(session);
+        }
+      });
+
+      return groups;
+    }
+
+    function getStatusIcon(status) {
+      switch (status) {
+        case 'completed':
+          return '✅';
+        case 'completed_with_errors':
+          return '⚠️';
+        case 'failed':
+          return '❌';
+        default:
+          return '⏳';
+      }
+    }
+
+    function getMonthName(dateString) {
+      const date = new Date(dateString + '-01'); // Add day to make valid date
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    }
+
+    function formatDuration(ms) {
+      if (!ms) return '0s';
+
+      if (ms < 1000) return `${ms}ms`;
+
+      const seconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+
+      if (minutes > 0) {
+        return `${minutes}m ${remainingSeconds}s`;
+      } else {
+        return `${seconds}s`;
+      }
+    }
+
+    // Global functions for button actions
+    window.viewSessionDetails = function(sessionId) {
+      console.log('Viewing session details for:', sessionId);
+      showStatus('Session details logged to console', 'info');
+    };
+
+    window.retryFailedDownloads = function(sessionId) {
+      console.log('Retrying failed downloads for session:', sessionId);
+      showStatus('Retry functionality coming soon', 'info');
+    };
+
+    function loadHistoryView() {
+      chrome.runtime.sendMessage({ action: 'getHistoryStats' }, function(response) {
+        if (chrome.runtime.lastError) {
+          console.error('Failed to load history:', chrome.runtime.lastError);
+          return;
+        }
+
+        if (response && response.sessions) {
+          displayHistoryView(response.sessions, response.summary);
+        }
+      });
+    }
+
+    // Event listeners
+    document.getElementById('addMockData').addEventListener('click', function() {
+      loadHistoryView();
+      showStatus('Mock data loaded', 'success');
+    });
+
+    document.getElementById('clearHistory').addEventListener('click', function() {
+      if (confirm('Are you sure you want to clear all download history? This cannot be undone.')) {
+        chrome.runtime.sendMessage({ action: 'clearHistory' }, function(response) {
+          if (chrome.runtime.lastError) {
+            showStatus('Failed to clear history', 'error');
+          } else {
+            showStatus('History cleared successfully', 'success');
+            document.getElementById('historyList').innerHTML = `
+              <div class="empty-history">
+                <div class="empty-history-icon">📊</div>
+                <div class="empty-history-title">No download history yet</div>
+                <div class="empty-history-text">Your first download will appear here</div>
+              </div>
+            `;
+          }
+        });
+      }
+    });
+
+    document.getElementById('toggleHistory').addEventListener('click', function() {
+      const historyView = document.getElementById('historyView');
+      const isVisible = !historyView.classList.contains('hidden');
+      historyView.classList.toggle('hidden');
+
+      if (!isVisible) {
+        loadHistoryView();
+      }
+    });
+
+    document.getElementById('testGrouping').addEventListener('click', function() {
+      // Test with different time periods
+      const testSessions = [
+        {
+          id: 'test_today',
+          date: new Date().toISOString().split('T')[0],
+          timestamp: new Date().toISOString(),
+          marketplace: 'Amazon.com',
+          invoicesDownloaded: 10,
+          failed: 0,
+          total: 10,
+          duration: 30000,
+          status: 'completed'
+        },
+        {
+          id: 'test_yesterday',
+          date: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+          timestamp: new Date(Date.now() - 86400000).toISOString(),
+          marketplace: 'Amazon.fr',
+          invoicesDownloaded: 5,
+          failed: 1,
+          total: 6,
+          duration: 20000,
+          status: 'completed_with_errors'
+        },
+        {
+          id: 'test_last_week',
+          date: new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0],
+          timestamp: new Date(Date.now() - 7 * 86400000).toISOString(),
+          marketplace: 'Amazon.de',
+          invoicesDownloaded: 3,
+          failed: 0,
+          total: 3,
+          duration: 15000,
+          status: 'completed'
+        }
+      ];
+
+      displayHistoryView(testSessions, {
+        totalInvoices: '18',
+        totalSessions: 3,
+        successRate: '83.3%',
+        averageSessionSize: 6
+      });
+
+      showStatus('Test grouping applied', 'success');
+    });
+
+    // Initialize with some data
+    loadHistoryView();
+  </script>
+</body>
+</html>

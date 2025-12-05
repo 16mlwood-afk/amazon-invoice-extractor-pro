@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deal Detectives - Invoice Downloader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Background decorative elements -->
+  <div class="bg-decoration"></div>
+
+  <div class="container">
+    <!-- Header -->
+    <header class="header">
+      <div class="logo-section">
+        <div class="logo-icon">
+          <img src="images/logo.png" alt="Deal Detectives Logo" id="logo">
+        </div>
+        <div class="logo-text">
+          <h1 class="brand-name">Deal Detectives</h1>
+          <p class="brand-tagline">Invoice Downloader</p>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content - Core Download Functionality -->
+    <main id="mainContent">
+      <!-- Account type selector (hidden for state management) -->
+      <div class="hidden-form" style="display: none;">
+        <select id="accountType" class="form-select">
+          <option value="business">Business Account</option>
+          <option value="nonbusiness">Consumer Account</option>
+        </select>
+      </div>
+
+      <!-- State-Based Status Card -->
+      <div id="statusCard" class="status-card">
+        <!-- IDLE STATE -->
+        <div class="status-state status-idle active">
+          <div class="state-icon">📦</div>
+          <h2 class="state-title">Ready to Download</h2>
+          <p class="state-description">
+            <span id="orderCountText">Found <strong id="orderCount">--</strong> orders on this page</span>
+            <span id="loadingSkeleton" class="skeleton-loading" style="display: none;">
+              <div class="skeleton skeleton-text" style="width: 60%; margin: 0 auto 16px;"></div>
+              <div class="skeleton skeleton-text" style="width: 40%; margin: 0 auto;"></div>
+            </span>
+          </p>
+
+          <!-- Date Range Selector -->
+          <div class="date-selector">
+            <label>Download invoices from:</label>
+
+            <!-- Year Selector -->
+            <div class="year-selector date-selector-section">
+              <label for="yearSelect">Select Year:</label>
+              <select id="yearSelect" class="form-select year-select">
+                <option value="2025" selected>2025</option>
+                <option value="2024">2024</option>
+                <option value="2023">2023</option>
+                <option value="2022">2022</option>
+              </select>
+            </div>
+
+            <!-- Accounting Period Presets -->
+            <div class="date-presets">
+              <!-- Accounting Period Buttons -->
+              <button class="preset-btn accounting-period" data-preset="q1">
+                <span class="quarter-label">Q1</span>
+                <span class="quarter-months">Aug - Oct</span>
+              </button>
+
+              <button class="preset-btn accounting-period" data-preset="q2">
+                <span class="quarter-label">Q2</span>
+                <span class="quarter-months">Nov - Jan</span>
+              </button>
+
+              <button class="preset-btn accounting-period" data-preset="q3">
+                <span class="quarter-label">Q3</span>
+                <span class="quarter-months">Feb - Apr</span>
+              </button>
+
+              <button class="preset-btn accounting-period" data-preset="q4">
+                <span class="quarter-label">Q4</span>
+                <span class="quarter-months">May - Jul</span>
+              </button>
+
+              <button class="preset-btn custom-range" data-preset="custom">
+                <span class="custom-label">📅 Custom Date Range</span>
+              </button>
+            </div>
+
+            <!-- Custom date inputs (hidden by default) -->
+            <div class="custom-dates" style="display:none;">
+              <input type="date" id="startDate" />
+              <span>to</span>
+              <input type="date" id="endDate" />
+            </div>
+
+            <div class="date-summary">
+              <small>Will search: <strong id="dateRangeSummary">--</strong></small>
+            </div>
+          </div>
+
+          <!-- Collapsible Advanced Options -->
+          <details class="collapsible-section">
+            <summary class="collapsible-summary">
+              <span class="summary-icon">⚙️</span>
+              <span class="summary-text">Advanced Options</span>
+              <span class="summary-arrow">▼</span>
+            </summary>
+            <div class="section-content">
+              <div class="option-group">
+                <label class="option-label">
+                  <input type="checkbox" id="includeDigital" checked>
+                  <span>Include digital orders</span>
+                </label>
+              </div>
+              <div class="option-group">
+                <label class="option-label">Download speed:</label>
+                <select id="concurrent" class="form-select option-select">
+                  <option value="1">Slow (1 at a time)</option>
+                  <option value="3" selected>Normal (3 at a time)</option>
+                  <option value="5">Fast (5 at a time)</option>
+                  <option value="10">Very Fast (10 at a time)</option>
+                </select>
+              </div>
+            </div>
+          </details>
+
+          <button class="btn btn-primary btn-large" id="downloadBtn">
+            <svg class="btn-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span class="btn-text">Download Invoices</span>
+          </button>
+        </div>
+
+        <!-- DOWNLOADING STATE -->
+        <div class="status-state status-downloading">
+          <div class="state-icon spinner">⏳</div>
+          <h2 class="state-title">Downloading...</h2>
+          <div class="progress-bar-container">
+            <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+          </div>
+          <p class="progress-text">
+            <span id="currentCount">0</span> of <span id="totalCount">0</span> invoices • <span id="progressPercentage">0%</span>
+          </p>
+          <div class="current-file">
+            <small>Currently: <span id="currentFile">--</span></small>
+          </div>
+          <div class="time-estimate" id="timeEstimate" style="display: none;">
+            <small id="timeRemaining">--</small>
+          </div>
+        </div>
+
+        <!-- Mini File Preview -->
+        <div class="download-preview" id="downloadPreview" style="display: none;">
+          <div class="preview-header">
+            <small>Downloading files:</small>
+          </div>
+          <div class="download-list" id="downloadList"></div>
+        </div>
+
+        <!-- SUCCESS STATE -->
+        <div class="status-state status-success">
+          <div class="summary-card" id="summaryCard">
+            <div class="summary-icon">✅</div>
+            <div class="summary-title">Download Complete!</div>
+            <div class="summary-stats">
+              <div class="stat">
+                <span class="stat-number" id="successCount">0</span>
+                <span class="stat-label">Downloaded</span>
+              </div>
+              <div class="stat">
+                <span class="stat-number" id="failedCount">0</span>
+                <span class="stat-label">Failed</span>
+              </div>
+              <div class="stat">
+                <span class="stat-number" id="totalTime">0s</span>
+                <span class="stat-label">Time</span>
+              </div>
+            </div>
+            <div class="summary-actions">
+              <button class="btn btn-secondary btn-large open-folder-btn" id="openFolderBtn">
+                📁 Open Folder
+              </button>
+              <button class="btn btn-primary btn-large" id="downloadMoreBtn">
+                <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="16 18 22 12 16 6"/>
+                  <polyline points="8 6 2 12 8 18"/>
+                </svg>
+                Download More
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ERROR STATE -->
+        <div class="status-state status-error">
+          <div class="state-icon">⚠️</div>
+          <h2 class="state-title">Some Issues</h2>
+          <p class="state-description">
+            <strong id="errorCount">0</strong> downloads failed
+          </p>
+          <div class="error-list" id="errorList"></div>
+
+          <!-- Enhanced Error Summary -->
+          <div class="error-summary" id="errorSummary" style="display: none;">
+            <h4>⚠️ Failed Downloads</h4>
+            <ul id="errorDetailsList"></ul>
+            <button class="btn btn-secondary btn-small" id="retryBtn">
+              <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              Retry Failed
+            </button>
+          </div>
+
+          <div class="error-actions">
+            <button class="btn btn-secondary" id="downloadMoreBtnError">
+              <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+              </svg>
+              Download More
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Messages (for compatibility) -->
+      <div id="status" class="status-message" style="display: none;"></div>
+      <div id="statusMessage" class="status-message" style="display: none;"></div>
+    </main>
+
+    <!-- Footer with links to options and history -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="#" id="optionsLink">⚙️ Settings</a>
+        <span class="footer-separator">•</span>
+        <a href="#" id="historyLink">📊 History</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
