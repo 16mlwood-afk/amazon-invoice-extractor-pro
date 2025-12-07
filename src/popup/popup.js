@@ -463,6 +463,52 @@ async function loadAccountName() {
 }
 
 /**
+ * Load and set account type dropdown
+ */
+async function loadAccountType() {
+  console.log('🔄 loadAccountType() called');
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'getAccountType'
+    });
+
+    console.log('📨 getAccountType response:', response);
+
+    if (response && response.success) {
+      const accountTypeDropdown = document.getElementById('accountTypeDropdown');
+      if (accountTypeDropdown) {
+        accountTypeDropdown.value = response.accountType;
+        console.log('📝 Setting account type in UI:', response.accountType);
+      }
+    } else {
+      console.error('Failed to load account type:', response?.error);
+    }
+  } catch (error) {
+    console.error('Error loading account type:', error);
+  }
+}
+
+/**
+ * Save account type when dropdown changes
+ */
+async function saveAccountType(type) {
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'setAccountType',
+      type: type
+    });
+
+    if (response && response.success) {
+      console.log('✅ Account type saved:', response.accountType);
+    } else {
+      console.error('Failed to save account type:', response?.error);
+    }
+  } catch (error) {
+    console.error('Error saving account type:', error);
+  }
+}
+
+/**
  * Handle edit account name button click
  */
 document.getElementById('edit-account-btn')?.addEventListener('click', async (event) => {
@@ -541,9 +587,10 @@ document.getElementById('edit-account-btn')?.addEventListener('click', async (ev
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔄 DOMContentLoaded fired in popup.js');
 
-  // Load account name first
+  // Load account name and type
   await loadAccountName();
-  console.log('✅ Account name loaded');
+  await loadAccountType();
+  console.log('✅ Account name and type loaded');
 
   // Fiscal year info tooltip
   const fyInfoIcon = document.getElementById('fyInfoIcon');
@@ -635,6 +682,11 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('errorHandling').addEventListener('change', saveSettings);
   document.getElementById('includeDigital').addEventListener('change', saveSettings);
   document.getElementById('concurrent').addEventListener('change', saveSettings);
+
+  // Account type dropdown
+  document.getElementById('accountTypeDropdown')?.addEventListener('change', async (e) => {
+    await saveAccountType(e.target.value);
+  });
 
   downloadBtn.addEventListener('click', function() {
     console.log('🔵 DOWNLOAD BUTTON CLICKED - Event listener fired');
