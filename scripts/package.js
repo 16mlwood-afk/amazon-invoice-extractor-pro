@@ -137,7 +137,10 @@ function packageExtension() {
         'Bandwidth management',
         'Settings & preferences',
         'Export session summaries',
-        'Metadata sidecar files'
+        'Metadata sidecar files',
+        'Structured logging system',
+        'Performance monitoring & metrics',
+        'Enhanced debugging capabilities'
       ]
     };
 

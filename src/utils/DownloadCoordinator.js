@@ -253,4 +253,4 @@ class DownloadCoordinator {
 }
 
 // Export for use in content scripts
-const downloadCoordinator = new DownloadCoordinator();
+// Class exported for instantiation in background script

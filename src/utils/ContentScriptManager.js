@@ -177,7 +177,4 @@ class ContentScriptManager {
 }
 
 // Export for use in background script
-const contentScriptManager = new ContentScriptManager();
-
-// Make globally available
-self.contentScriptManager = contentScriptManager;
+// Class exported for instantiation in background script

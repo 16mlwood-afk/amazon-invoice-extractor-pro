@@ -276,9 +276,14 @@ class NotificationManager {
 
   // Play notification sound
   playNotificationSound() {
+    // Skip sound in service worker context (no audio access)
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     // Create a simple beep sound using Web Audio API
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioContext = new (self.AudioContext || self.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -300,8 +305,13 @@ class NotificationManager {
 
   // Play error sound
   playErrorSound() {
+    // Skip sound in service worker context (no audio access)
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioContext = new (self.AudioContext || self.webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -445,13 +455,7 @@ class NotificationManager {
   }
 }
 
-// Singleton instance
-const notificationManager = new NotificationManager();
-
-// Setup notification listeners when the script loads
-notificationManager.setupNotificationListeners();
-
-// Export for use in other modules
+// Class exported for instantiation in background script
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = NotificationManager;
 }

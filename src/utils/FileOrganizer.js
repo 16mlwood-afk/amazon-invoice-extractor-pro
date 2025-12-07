@@ -259,7 +259,7 @@ class FileOrganizer {
 }
 
 // Singleton instance
-const fileOrganizer = new FileOrganizer();
+// Class exported for instantiation in background script
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

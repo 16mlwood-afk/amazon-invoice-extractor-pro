@@ -310,7 +310,7 @@ class HistoryManager {
 }
 
 // Singleton instance
-const historyManager = new HistoryManager();
+// Class exported for instantiation in background script
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

@@ -216,7 +216,7 @@ async function handlePageResume() {
       console.log('  Is pendingDownload defined?:', !!pendingDownload);
 
       chrome.runtime.sendMessage({
-        type: 'startDownloads',
+        action: 'startDownloads',
         downloadItems: paginationState.downloadItems,
         marketplace: marketplace,
         concurrent: 3,
@@ -1289,34 +1289,52 @@ console.log('  💡 Run diagnoseDownloadItems() in console to analyze URLs');
     console.log('  endDate being sent:', endDate);            // ✅ NEW
     console.log('  dateRangeType being sent:', dateRangeType);// ✅ NEW
     console.log('  Source:', state.startDate ? 'paginationState' : 'pendingDownload');
+    console.log('  downloadItems type:', typeof state.downloadItems);
+    console.log('  downloadItems isArray:', Array.isArray(state.downloadItems));
+    console.log('  downloadItems length:', state.downloadItems?.length || 'undefined');
+    console.log('  marketplace:', marketplace);
 
-    chrome.runtime.sendMessage({
-      type: 'startDownloads',
+    const messagePayload = {
+      action: 'startDownloads',
       downloadItems: state.downloadItems,
       marketplace: marketplace,
       concurrent: 3,
       startDate: startDate,        // ✅ NEW - uses persisted dates
       endDate: endDate,            // ✅ NEW - uses persisted dates
       dateRangeType: dateRangeType // ✅ NEW - uses persisted dates
-    }).then(response => {
+    };
+
+    console.log('📤 Sending message payload:', messagePayload);
+
+    chrome.runtime.sendMessage(messagePayload, (response) => {
+      if (chrome.runtime.lastError) {
+        console.error('❌ Failed to start downloads:', chrome.runtime.lastError);
+        alert(`Error: Could not start downloads. ${chrome.runtime.lastError.message}`);
+        return;
+      }
+
       console.log('✅ Background acknowledged:', response);
 
-      // Notify user that downloads started (normal case)
-      chrome.runtime.sendMessage({
-        action: 'showProgress',
-        title: 'Starting Downloads',
-        message: `Processing ${state.downloadItems.length} invoices...`,
-        progress: 0
-      });
-
-    }).catch(error => {
-      console.error('❌ Failed to start downloads:', error);
-      alert(`Error: Could not start downloads. ${error.message}`);
+      if (response && response.success) {
+        // Notify user that downloads started (normal case) - send this separately
+        setTimeout(() => {
+          chrome.runtime.sendMessage({
+            action: 'showProgress',
+            title: 'Starting Downloads',
+            message: `Processing ${state.downloadItems.length} invoices...`,
+            progress: 0
+          }).catch(err => {
+            console.log('⚠️ Progress notification failed:', err.message);
+          });
+        }, 100); // Small delay to ensure message port is available
+      } else {
+        alert(`Error: Could not start downloads. ${response?.error || 'Unknown error'}`);
+      }
     });
 
     // Update popup status
     chrome.runtime.sendMessage({
-      type: 'DOWNLOAD_PROGRESS',
+      action: 'updateDownloadProgress',
       data: {
         phase: 'downloading',
         current: 0,

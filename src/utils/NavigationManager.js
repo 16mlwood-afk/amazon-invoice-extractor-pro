@@ -248,8 +248,9 @@ class NavigationManager {
 }
 
 // Export for use in content scripts
-const navigationManager = new NavigationManager();
+// Class exported for instantiation in background script
 
-// Make globally available
-window.navigationManager = navigationManager;
-console.log('✅ NAVIGATION-MANAGER.JS LOADED - navigationManager available:', typeof window.navigationManager);
+// Class exported for instantiation in appropriate contexts
+
+// Instantiate NavigationManager and make it globally available
+window.navigationManager = new NavigationManager();

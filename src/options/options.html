@@ -177,10 +177,30 @@
           <div class="setting-item">
             <div class="setting-control">
               <input type="checkbox" id="skipDuplicates" checked />
-              <label for="skipDuplicates">Skip invoices already downloaded</label>
+              <label for="skipDuplicates">Skip orders already processed</label>
             </div>
             <div class="setting-description">
-              Check existing files and skip downloads that already exist in your download folder
+              Skip Amazon orders that have already been downloaded previously
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="skipFileDuplicates" checked />
+              <label for="skipFileDuplicates">Skip duplicate files locally</label>
+            </div>
+            <div class="setting-description">
+              Check local downloads folder and skip files that already exist (by hash comparison)
+            </div>
+          </div>
+
+          <div class="setting-item">
+            <div class="setting-control">
+              <input type="checkbox" id="skipDriveDuplicates" checked />
+              <label for="skipDriveDuplicates">Skip duplicate files in Google Drive</label>
+            </div>
+            <div class="setting-description">
+              Check Google Drive before uploading and skip files that already exist
             </div>
           </div>
 

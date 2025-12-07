@@ -8,8 +8,8 @@ This document provides instructions for deploying the Amazon Invoice Extractor P
 
 **Location**: `/Users/masonwood/amazon-invoice-extractor/dist/` (696KB)
 **Files**: 36 files total
-**Version**: 2.0.0
-**Build Date**: December 4, 2025
+**Version**: 2.1.0
+**Build Date**: December 7, 2025
 
 ### Package Contents
 - ✅ **Extension Core**: manifest.json, popup.*, background.js, content.js

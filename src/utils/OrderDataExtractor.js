@@ -205,8 +205,9 @@ class OrderDataExtractor {
 }
 
 // Export for use in content scripts
-const orderDataExtractor = new OrderDataExtractor();
+// Class exported for instantiation in background script
 
-// Make globally available
-window.orderDataExtractor = orderDataExtractor;
-console.log('✅ ORDER-DATA-EXTRACTOR.JS LOADED - orderDataExtractor available:', typeof window.orderDataExtractor);
+// Class exported for instantiation in appropriate contexts
+
+// Instantiate OrderDataExtractor and make it globally available
+window.orderDataExtractor = new OrderDataExtractor();

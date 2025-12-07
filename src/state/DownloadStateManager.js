@@ -135,8 +135,4 @@ class DownloadStateManager {
   }
 }
 
-// Export for use in background script
-const downloadStateManager = new DownloadStateManager();
-
-// Make globally available
-self.downloadStateManager = downloadStateManager;
+// Class exported for instantiation in background script

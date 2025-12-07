@@ -1,7 +1,7 @@
 {
   "name": "amazon-invoice-extractor-pro",
   "version": "2.1.0",
-  "description": "Professional Amazon invoice downloader with multi-marketplace support, advanced queue management, and automated organization",
+  "description": "Professional Amazon invoice downloader with multi-marketplace support, advanced queue management, automated organization, structured logging, and performance monitoring",
   "author": "Deal Detectives",
   "license": "MIT",
   "repository": {
@@ -27,7 +27,11 @@
     "business",
     "accounting",
     "multi-marketplace",
-    "enterprise"
+    "enterprise",
+    "logging",
+    "monitoring",
+    "performance",
+    "debugging"
   ],
   "manifest": {
     "version": "3",

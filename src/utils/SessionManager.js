@@ -70,8 +70,4 @@ class SessionManager {
   }
 }
 
-// Export for use in background script
-const sessionManager = new SessionManager();
-
-// Make globally available
-self.sessionManager = sessionManager;
+// Class exported for instantiation in background script

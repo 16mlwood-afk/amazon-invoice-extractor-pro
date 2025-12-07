@@ -278,8 +278,7 @@ class MetadataManager {
   }
 }
 
-// Singleton instance
-const metadataManager = new MetadataManager();
+// Class exported for instantiation in background script
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

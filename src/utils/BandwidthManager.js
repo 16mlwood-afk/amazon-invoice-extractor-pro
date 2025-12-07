@@ -324,7 +324,7 @@ class BandwidthManager {
 }
 
 // Singleton instance
-const bandwidthManager = new BandwidthManager();
+// Class exported for instantiation in background script
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

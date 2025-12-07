@@ -72,6 +72,15 @@ class HealthChecker {
     // you'd check for Amazon login cookies or session state
     try {
       // Check if we're on an Amazon domain and look for signs of login
+      // Skip DOM checks in service worker context
+      if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return {
+          name: 'authentication',
+          passed: null, // Unknown in service worker context
+          message: 'Authentication check not available in service worker'
+        };
+      }
+
       const hasAmazonCookies = document.cookie.includes('amazon');
       const hasSessionIndicators = document.querySelector('[data-customer-id]') ||
                                    document.querySelector('.nav-line-1') ||
@@ -358,7 +367,7 @@ class HealthChecker {
 }
 
 // Singleton instance
-const healthChecker = new HealthChecker();
+// Class exported for instantiation in background script
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
