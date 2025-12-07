@@ -46,27 +46,27 @@ function getAccountingPeriodDates(quarter) {
   let startDate, endDate, rangeType;
 
   switch(quarter) {
-    case 'q1': // Aug-Oct
+    case 'q1': // Aug-Oct (Q1 of fiscal year starting in selectedYear)
       startDate = `${selectedYear}-08-01`;
       endDate = `${selectedYear}-10-31`;
       rangeType = 'Q1_Aug_Oct';
       break;
 
-    case 'q2': // Nov-Jan (spans year boundary)
+    case 'q2': // Nov-Jan (Q2 spans year boundary)
       startDate = `${selectedYear}-11-01`;
       endDate = `${selectedYear + 1}-01-31`;
       rangeType = 'Q2_Nov_Jan';
       break;
 
-    case 'q3': // Feb-Apr
-      startDate = `${selectedYear}-02-01`;
-      endDate = `${selectedYear}-04-30`;
+    case 'q3': // Feb-Apr (Q3 of next year in fiscal calendar)
+      startDate = `${selectedYear + 1}-02-01`;
+      endDate = `${selectedYear + 1}-04-30`;
       rangeType = 'Q3_Feb_Apr';
       break;
 
-    case 'q4': // May-Jul
-      startDate = `${selectedYear}-05-01`;
-      endDate = `${selectedYear}-07-31`;
+    case 'q4': // May-Jul (Q4 of next year in fiscal calendar)
+      startDate = `${selectedYear + 1}-05-01`;
+      endDate = `${selectedYear + 1}-07-31`;
       rangeType = 'Q4_May_Jul';
       break;
 
