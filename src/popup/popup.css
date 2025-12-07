@@ -10,6 +10,32 @@
 @import url('./styles/form-styles.css');
 @import url('./styles/state-ui.css');
 @import url('./styles/toast-messages.css');
+
+/* ============================================
+   ENHANCED BODY & CONTAINER STYLING
+   ============================================ */
+
+body {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 25%, #e2e8f0 50%, #f8fafc 75%, #ffffff 100%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 40% 40%, rgba(120, 219, 226, 0.05) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
   
   /* ============================================
      HEADER
@@ -18,12 +44,27 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: var(--space-lg);
-    padding: var(--space-md);
-    background: var(--bg-card);
+    margin-bottom: var(--space-xl);
+    padding: var(--space-lg);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+    border: 1px solid rgba(226, 232, 240, 0.8);
     border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-sm);
-    animation: slideDown 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+    backdrop-filter: blur(20px);
+    animation: slideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 50%, var(--color-primary) 100%);
+    opacity: 0.8;
   }
   
   @keyframes slideDown {
@@ -44,14 +85,31 @@
   }
   
   .logo-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
-    border-radius: var(--border-radius-md);
+    width: 48px;
+    height: 48px;
+    background: var(--color-primary-gradient);
+    border-radius: var(--border-radius-lg);
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--shadow-md);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3), 0 4px 12px rgba(37, 99, 235, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .logo-icon:hover {
+    transform: scale(1.05) rotate(5deg);
+    box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4), 0 6px 16px rgba(37, 99, 235, 0.2);
+  }
+
+  .logo-icon::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 100%);
+    z-index: -1;
   }
   
   #logo {
@@ -669,10 +727,11 @@
   .btn-primary {
     background: var(--color-primary-gradient);
     color: var(--text-inverse);
-    box-shadow: var(--shadow-lg), var(--shadow-glow-strong);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 16px 32px rgba(37, 99, 235, 0.3), 0 8px 16px rgba(37, 99, 235, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(20px);
   }
 
   .btn-primary::before {
@@ -682,21 +741,37 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-primary::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
   .btn-primary:hover::before {
     left: 100%;
   }
 
+  .btn-primary:hover::after {
+    opacity: 1;
+  }
+
   .btn-primary:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-xl), 0 0 40px rgba(37, 99, 235, 0.4);
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 24px 48px rgba(37, 99, 235, 0.4), 0 12px 24px rgba(37, 99, 235, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.2);
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
   }
 
   .btn-primary:active {
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(0.98);
+    transition: all 0.1s ease;
   }
   
   .btn-secondary {
@@ -1037,12 +1112,32 @@
    ============================================ */
 
 .status-card {
-  background: var(--bg-card);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.9) 100%);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: var(--border-radius-xl);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.04);
+  backdrop-filter: blur(20px);
   padding: var(--space-xl);
-  margin-bottom: var(--space-lg);
-  transition: all var(--transition-base);
+  margin-bottom: var(--space-xl);
+  transition: all var(--transition-slow);
+  position: relative;
+  overflow: hidden;
+}
+
+.status-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-success) 0%, var(--color-primary) 50%, var(--color-accent) 100%);
+  opacity: 0.9;
+}
+
+.status-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.12), 0 16px 32px rgba(0, 0, 0, 0.08);
 }
 
 .status-state {
@@ -1056,25 +1151,41 @@
 }
 
 .state-icon {
-  font-size: 48px;
+  font-size: 56px;
   margin-bottom: var(--space-lg);
   display: block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 .state-title {
   font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 28px;
+  font-weight: 800;
   color: var(--text-primary);
   margin-bottom: var(--space-md);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--color-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .state-description {
   font-size: 16px;
   color: var(--text-secondary);
   margin-bottom: var(--space-xl);
-  line-height: 1.5;
+  line-height: 1.6;
+  font-weight: 400;
 }
 
 /* IDLE STATE */
@@ -1557,22 +1668,60 @@
 /* FOOTER */
 .footer {
   text-align: center;
-  padding: var(--space-lg) 0 var(--space-md) 0;
-  border-top: 1px solid var(--border-color);
+  padding: var(--space-xl) 0 var(--space-lg) 0;
+  border-top: 2px solid rgba(37, 99, 235, 0.1);
   margin-top: var(--space-xl);
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(248, 250, 252, 0.6) 100%);
+  border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
+  position: relative;
+}
+
+.footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-accent) 100%);
+  border-radius: 2px;
+  opacity: 0.6;
 }
 
 .footer a {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-decoration: none;
-  font-size: 13px;
-  transition: color var(--transition-fast);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all var(--transition-base);
+  position: relative;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--border-radius-sm);
 }
 
 .footer a:hover {
   color: var(--color-primary);
+  background: rgba(37, 99, 235, 0.08);
+  transform: translateY(-1px);
+}
+
+.footer a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background: var(--color-primary);
+  transition: all var(--transition-base);
+  transform: translateX(-50%);
+}
+
+.footer a:hover::after {
+  width: 80%;
 }
 
 /* HIDDEN FORM (for state management) */
