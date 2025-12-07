@@ -5,7 +5,10 @@
 
 set -e
 
-echo "🚀 Amazon Invoice Extractor Pro v2.0.0 - Internal Deployment"
+# Extract version from package.json
+VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
+
+echo "🚀 Amazon Invoice Extractor Pro v${VERSION} - Internal Deployment"
 echo "=========================================================="
 
 # Colors for output
@@ -44,8 +47,9 @@ echo "  Location: $(pwd)/dist"
 echo "  Size: $(du -sh dist | cut -f1)"
 echo "  Files: $(find dist -type f | wc -l) files"
 
-if [ -f "amazon-invoice-extractor-pro-v2.0.0.zip" ]; then
-    echo "  ZIP: $(pwd)/amazon-invoice-extractor-pro-v2.0.0.zip ($(du -sh amazon-invoice-extractor-pro-v2.0.0.zip | cut -f1))"
+ZIP_FILE="amazon-invoice-extractor-pro-v${VERSION}.zip"
+if [ -f "$ZIP_FILE" ]; then
+    echo "  ZIP: $(pwd)/$ZIP_FILE ($(du -sh "$ZIP_FILE" | cut -f1))"
 fi
 
 echo ""
@@ -91,7 +95,7 @@ case $choice in
         echo "==========================="
         echo ""
         echo "1. DOWNLOAD THE EXTENSION:"
-        echo "   - Get the dist/ folder or amazon-invoice-extractor-pro-v2.0.0.zip"
+        echo "   - Get the dist/ folder or $ZIP_FILE"
         echo "   - Extract ZIP if downloaded"
         echo ""
         echo "2. INSTALL IN CHROME:"

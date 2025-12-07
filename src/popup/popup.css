@@ -1,99 +1,15 @@
 /* ============================================
-   CSS VARIABLES - Design System
+   POPUP STYLES - COMPONENT-BASED ARCHITECTURE
    ============================================ */
-   :root {
-    /* Colors - Professional Teal Theme */
-    --color-primary: #0891b2;
-    --color-primary-hover: #0e7490;
-    --color-primary-light: #06b6d4;
-    --color-secondary: #64748b;
-    --color-accent: #f59e0b;
-    --color-success: #10b981;
-    --color-error: #ef4444;
-    --color-warning: #f59e0b;
-    
-    /* Backgrounds */
-    --bg-primary: #ffffff;
-    --bg-secondary: #f8fafc;
-    --bg-tertiary: #f1f5f9;
-    --bg-card: #ffffff;
-    --bg-hover: #f8fafc;
-    
-    /* Text */
-    --text-primary: #0f172a;
-    --text-secondary: #475569;
-    --text-tertiary: #94a3b8;
-    --text-inverse: #ffffff;
-    
-    /* Borders */
-    --border-color: #e2e8f0;
-    --border-radius-sm: 6px;
-    --border-radius-md: 10px;
-    --border-radius-lg: 14px;
-    
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-    
-    /* Spacing */
-    --space-xs: 4px;
-    --space-sm: 8px;
-    --space-md: 16px;
-    --space-lg: 24px;
-    --space-xl: 32px;
-    
-    /* Typography */
-    --font-display: 'Manrope', system-ui, sans-serif;
-    --font-body: 'DM Sans', system-ui, sans-serif;
-    
-    /* Transitions */
-    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-    --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  /* ============================================
-     BASE STYLES
-     ============================================ */
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
-  
-  body {
-    font-family: var(--font-body);
-    font-size: 14px;
-    line-height: 1.6;  /* More space between lines */
-    color: var(--text-primary);
-    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-    width: 480px;  /* Increased from 420px for better breathing room */
-    min-height: 520px;  /* Slightly taller */
-    overflow-x: hidden;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
-  
-  /* Background Decoration */
-  .bg-decoration {
-    position: fixed;
-    top: -100px;
-    right: -100px;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(8, 145, 178, 0.1) 0%, transparent 70%);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 0;
-  }
-  
-  .container {
-    position: relative;
-    padding: var(--space-xl) calc(var(--space-xl) + 8px);  /* Added extra horizontal padding */
-    z-index: 1;
-  }
+
+/* Import component-specific stylesheets */
+@import url('./styles/design-system.css');
+@import url('./styles/animations.css');
+@import url('./styles/header.css');
+@import url('./styles/card-components.css');
+@import url('./styles/form-styles.css');
+@import url('./styles/state-ui.css');
+@import url('./styles/toast-messages.css');
   
   /* ============================================
      HEADER
@@ -724,30 +640,53 @@
   
   /* Button Variants */
   .btn-primary {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+    background: var(--color-primary-gradient);
     color: var(--text-inverse);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg), var(--shadow-glow-strong);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
   }
-  
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  .btn-primary:hover::before {
+    left: 100%;
+  }
+
   .btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-xl), 0 0 40px rgba(37, 99, 235, 0.4);
   }
-  
+
   .btn-primary:active {
-    transform: translateY(0);
+    transform: translateY(-1px);
   }
   
   .btn-secondary {
-    background: var(--bg-secondary);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     color: var(--text-primary);
-    border: 2px solid var(--border-color);
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    box-shadow: var(--shadow-md);
   }
-  
+
   .btn-secondary:hover {
-    background: var(--bg-primary);
+    background: rgba(37, 99, 235, 0.05);
     border-color: var(--color-primary);
     color: var(--color-primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg), var(--shadow-glow);
   }
   
   .btn-danger {

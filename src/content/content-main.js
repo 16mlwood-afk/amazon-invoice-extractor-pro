@@ -274,215 +274,7 @@ async function handlePageResume() {
   return false; // No resume needed
 }
 
-function navigateToPageOne() {
-  console.log('🔄 Navigating to page 1...');
-
-  // Get current URL
-  const currentUrl = window.location.href;
-  console.log('📍 Current URL:', currentUrl);
-
-  // Replace startIndex parameter with 0
-  const pageOneUrl = currentUrl.replace(
-    /startIndex=\d+/,
-    'startIndex=0'
-  );
-
-  console.log('🎯 Target URL:', pageOneUrl);
-
-  // Also handle case where startIndex might not exist
-  if (currentUrl.includes('startIndex=')) {
-    console.log('✅ Found existing startIndex parameter, replacing...');
-    window.location.href = pageOneUrl;
-  } else {
-    // No startIndex in URL - already on page 1 or different URL structure
-    console.log('⚠️ No startIndex in URL, adding it...');
-    const separator = currentUrl.includes('?') ? '&' : '?';
-    const finalUrl = currentUrl + separator + 'startIndex=0';
-    console.log('🎯 Final URL:', finalUrl);
-    window.location.href = finalUrl;
-  }
-
-  console.log('🚀 Navigation initiated...');
-}
-
-/**
- * Ensure Amazon's date filter covers the requested date range
- * @returns {boolean} true if filter was adjusted (page will reload), false if already correct
- */
-async function ensureDateFilterCoversRange(startDate, endDate, accountType, dateRangeType) {
-  console.log('🔍 Checking if Amazon date filter covers search range...');
-  console.log('  Search range:', startDate, 'to', endDate);
-
-  // Find the date filter dropdown
-  const dateFilterSelectors = [
-    '#timePeriodForm select',
-    'select[name="timeFilter"]',
-    'select[name="orderFilter"]',
-    '#orderFilter'
-  ];
-
-  let dateFilterSelect = null;
-  for (const selector of dateFilterSelectors) {
-    dateFilterSelect = document.querySelector(selector);
-    if (dateFilterSelect) {
-      console.log('  Found date filter:', selector);
-      break;
-    }
-  }
-
-  if (!dateFilterSelect) {
-    console.log('  ⚠️ Could not find date filter dropdown - continuing anyway');
-    return false;
-  }
-
-  // Get current filter value
-  const currentFilter = dateFilterSelect.value;
-  console.log('  Current filter value:', currentFilter);
-
-  // Parse search dates
-  const searchStart = new Date(startDate);
-  const searchEnd = new Date(endDate);
-  const searchStartYear = searchStart.getFullYear();
-  const searchEndYear = searchEnd.getFullYear();
-
-  // Determine if we need to change the filter
-  let needsChange = false;
-  let targetFilter = null;
-
-  // Check if search range spans multiple years
-  if (searchStartYear !== searchEndYear) {
-    // Need "All orders" or specific years
-    const allOrdersOption = Array.from(dateFilterSelect.options).find(
-      opt => opt.value === 'all' || opt.text.toLowerCase().includes('all')
-    );
-
-    if (allOrdersOption) {
-      targetFilter = allOrdersOption.value;
-      needsChange = currentFilter !== targetFilter;
-    }
-  } else {
-    // Single year search
-    const currentYear = new Date().getFullYear();
-
-    if (searchStartYear !== currentYear) {
-      // Need to select specific year
-      const yearOption = Array.from(dateFilterSelect.options).find(
-        opt => opt.value === String(searchStartYear) || opt.text.includes(String(searchStartYear))
-      );
-
-      if (yearOption) {
-        targetFilter = yearOption.value;
-        needsChange = currentFilter !== targetFilter;
-      }
-    } else {
-      // Current year - check if "past three months" covers it
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-
-      if (searchStart < threeMonthsAgo) {
-        // Need to select full year
-        const yearOption = Array.from(dateFilterSelect.options).find(
-          opt => opt.value === String(currentYear) || opt.text.includes(String(currentYear))
-        );
-
-        if (yearOption) {
-          targetFilter = yearOption.value;
-          needsChange = currentFilter !== targetFilter;
-        }
-      }
-    }
-  }
-
-  // Apply change if needed
-  if (needsChange && targetFilter) {
-    console.log('  🔄 Changing filter from', currentFilter, 'to', targetFilter);
-
-    // Show notification to user
-    notifyInfo(`Adjusting date filter to include ${startDate} - ${endDate}...`);
-
-    // Change the filter
-    dateFilterSelect.value = targetFilter;
-
-    // Trigger change event
-    const changeEvent = new Event('change', { bubbles: true });
-    dateFilterSelect.dispatchEvent(changeEvent);
-
-    // Amazon will reload the page, so save state to resume after reload
-    await chrome.storage.local.set({
-      pendingDownload: {
-        startDate: startDate,
-        endDate: endDate,
-        accountType: accountType,
-        dateRangeType: dateRangeType,
-        shouldAutoStart: true,
-        timestamp: Date.now(),
-        reason: 'date_filter_adjusted'
-      }
-    });
-
-    console.log('  ✅ Filter changed, page will reload automatically');
-    console.log('  ⏳ Download will auto-start after reload...');
-
-    return true; // Indicate that filter was changed
-  }
-
-  console.log('  ✅ Date filter already covers search range');
-  return false;
-}
-
-function showNavigationPrompt(options) {
-  const overlay = document.createElement('div');
-  overlay.innerHTML = `
-    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-                background: rgba(0,0,0,0.7); z-index: 10000;
-                display: flex; align-items: center; justify-content: center;">
-      <div style="background: white; padding: 48px; border-radius: 16px;
-                  max-width: 600px; text-align: center;">
-        <h2 style="margin: 0 0 24px 0; color: #232f3e; font-size: 24px;">
-          ⚠️ Date Range Mismatch
-        </h2>
-        <p style="margin: 24px 0; color: #565959; line-height: 1.6; font-size: 16px;">
-          You're on <strong>page ${options.currentPage}</strong> showing orders from
-          <strong>${options.currentPageDate.toLocaleDateString()}</strong>
-        </p>
-        <p style="margin: 24px 0; color: #565959; line-height: 1.6; font-size: 16px;">
-          Your search range is:
-          <strong>${options.targetStartDate.toLocaleDateString()}</strong> to
-          <strong>${options.targetEndDate.toLocaleDateString()}</strong>
-        </p>
-        <p style="margin: 32px 0 24px 0; color: #ff9900; font-weight: 500; font-size: 16px;">
-          💡 Navigate to page 1 to find matching orders
-        </p>
-        <div style="margin-top: 40px; display: flex; gap: 16px; justify-content: center;">
-          <button id="navigate-btn" style="background: #ff9900; color: white;
-                  border: none; padding: 16px 32px; border-radius: 10px;
-                  font-size: 16px; font-weight: 600; cursor: pointer;
-                  min-width: 140px; transition: all 0.2s ease;">
-            Go to Page 1
-          </button>
-          <button id="continue-btn" style="background: white; color: #0f1111;
-                  border: 2px solid #d5d9d9; padding: 16px 32px; border-radius: 10px;
-                  font-size: 16px; font-weight: 600; cursor: pointer;
-                  min-width: 140px; transition: all 0.2s ease;">
-            Continue Anyway
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(overlay);
-
-  document.getElementById('navigate-btn').onclick = () => {
-    overlay.remove();
-    options.onNavigate();
-  };
-
-  document.getElementById('continue-btn').onclick = () => {
-    overlay.remove();
-    options.onContinue();
-  };
-}
+// Navigation functions are now handled by NavigationManager module
 
 // ===== MODULE-LEVEL VARIABLES =====
 
@@ -622,7 +414,11 @@ async function collectFromCurrentPage(startDate, endDate, collectedOrderIds = []
   let shouldStop = false;
   if (items.length === 0 && orderCards.length > 0) {
     // Check if all orders are before the start date
-    const firstOrderDate = extractFirstOrderDate(orderCards[0]);
+    if (typeof window.orderDataExtractor === 'undefined') {
+      console.error('❌ OrderDataExtractor not available - cannot check order dates');
+      throw new Error('OrderDataExtractor not loaded');
+    }
+    const firstOrderDate = window.orderDataExtractor.extractFirstOrderDate(orderCards[0]);
     if (firstOrderDate && firstOrderDate < normalizedStartDate) {
       console.log('🛑 No orders found in date range - should stop pagination');
       shouldStop = true;
@@ -638,177 +434,7 @@ async function collectFromCurrentPage(startDate, endDate, collectedOrderIds = []
   };
 }
 
-// Helper function
-function extractFirstOrderDate(orderElement) {
-  const textContent = orderElement.innerText || orderElement.textContent;
-  const dateMatch = textContent.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})/i);
-
-  if (dateMatch) {
-    const date = new Date(dateMatch[0]);
-    date.setHours(12, 0, 0, 0);
-    return date;
-  }
-
-  return null;
-}
-
-/**
- * Extract date from order card using text pattern matching
- */
-function extractOrderDateFromText(orderElement) {
-  // Get all text content
-  const textContent = orderElement.innerText || orderElement.textContent;
-
-  // Look for date patterns
-  const datePatterns = [
-    // "30 November 2025"
-    /(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+(\d{4})/i,
-    // "30.11.2025"
-    /(\d{1,2})\.(\d{1,2})\.(\d{4})/,
-    // "2025-11-30"
-    /(\d{4})-(\d{1,2})-(\d{1,2})/,
-    // "Nov 30, 2025"
-    /(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+(\d{1,2}),?\s+(\d{4})/i
-  ];
-
-  for (const pattern of datePatterns) {
-    const match = textContent.match(pattern);
-    if (match) {
-      console.log('📅 Found date:', match[0]);
-      return match[0];
-    }
-  }
-
-  console.warn('⚠️ No date found in order card');
-  return null;
-}
-
-/**
- * Extract order data from a DOM element
- * @param {Element} orderElement - The order DOM element
- * @param {string} accountType - 'business' or 'nonbusiness'
- * @param {number} index - Index in the current page
- * @returns {Object} Order data object
- */
-function extractOrderData(orderElement, accountType, index) {
-  try {
-    // Extract order ID
-    const orderId = extractOrderId(orderElement);
-    if (!orderId) {
-      console.warn('⚠️ Could not extract order ID from element');
-      return null;
-    }
-
-    // Extract order date
-    const orderDate = extractOrderDate(orderElement);
-
-    // Extract invoice URL based on account type
-    let invoiceUrl = null;
-    if (accountType === 'business') {
-      invoiceUrl = extractBusinessInvoiceUrl(orderElement);
-    } else {
-      invoiceUrl = extractConsumerInvoiceUrl(orderElement);
-    }
-
-    // Create order data object
-    const orderData = {
-      orderId: orderId,
-      date: orderDate,
-      url: invoiceUrl,
-      invoiceUrl: invoiceUrl, // Keep both for compatibility
-      index: index,
-      accountType: accountType,
-      element: orderElement // Keep reference to DOM element
-    };
-
-    console.log(`  📦 Order ${orderId}: ${orderDate} - ${invoiceUrl ? 'Has invoice' : 'No invoice'}`);
-
-    return orderData;
-  } catch (error) {
-    console.error('❌ Error extracting order data:', error);
-    return null;
-  }
-}
-
-/**
- * Extract order ID from order element
- * @param {Element} orderElement
- * @returns {string|null} Order ID
- */
-function extractOrderId(orderElement) {
-  // Try various selectors for order ID
-  const selectors = [
-    '[data-order-id]',
-    '.order-id',
-    '.a-color-secondary a[href*="orderID"]',
-    'a[href*="orderID"]'
-  ];
-
-  for (const selector of selectors) {
-    const element = orderElement.querySelector(selector);
-    if (element) {
-      // Extract from href attribute
-      const href = element.getAttribute('href') || element.href;
-      if (href) {
-        const match = href.match(/orderID[=\/]([0-9\-]+)/);
-        if (match) return match[1];
-      }
-
-      // Extract from data attribute
-      const orderId = element.getAttribute('data-order-id') || element.textContent;
-      if (orderId) return orderId.trim();
-    }
-  }
-
-  return null;
-}
-
-/**
- * Extract business account invoice URL
- * @param {Element} orderElement
- * @returns {string|null} Invoice URL
- */
-function extractBusinessInvoiceUrl(orderElement) {
-  // Business accounts have different invoice link patterns
-  const selectors = [
-    'a[href*="invoice"]',
-    'a[href*="rechnung"]', // German
-    'a[href*="facture"]',  // French
-    '.invoice-link a'
-  ];
-
-  for (const selector of selectors) {
-    const link = orderElement.querySelector(selector);
-    if (link && link.href) {
-      return link.href;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Extract consumer account invoice URL
- * @param {Element} orderElement
- * @returns {string|null} Invoice URL
- */
-function extractConsumerInvoiceUrl(orderElement) {
-  // Consumer accounts typically use popover or direct invoice links
-  const selectors = [
-    'a[href*="invoice"]',
-    'a[href*="popover"]',
-    '.invoice-link a'
-  ];
-
-  for (const selector of selectors) {
-    const link = orderElement.querySelector(selector);
-    if (link && link.href) {
-      return link.href;
-    }
-  }
-
-  return null;
-}
+// Order data extraction is now handled by OrderDataExtractor module
 
 // ===== PAGINATION RESUME FUNCTION =====
 
@@ -1026,7 +652,11 @@ async function startDownloadProcess(startDate, endDate, accountType, dateRangeTy
     notifyInfo('Starting invoice collection...');
 
     // CRITICAL: Check and adjust Amazon's date filter FIRST
-    const filterAdjusted = await ensureDateFilterCoversRange(startDate, endDate, accountType, dateRangeType);
+    if (typeof window.navigationManager === 'undefined') {
+      console.error('❌ NavigationManager not available - cannot check date filter');
+      throw new Error('NavigationManager not loaded');
+    }
+    const filterAdjusted = await window.navigationManager.ensureDateFilterCoversRange(startDate, endDate, accountType, dateRangeType);
 
     if (filterAdjusted) {
       // Filter was changed, page will reload, download will auto-resume
@@ -1132,7 +762,11 @@ async function startDownloadProcess(startDate, endDate, accountType, dateRangeTy
                 // Small delay to ensure storage is fully committed
                 await sleep(100);
 
-                navigateToPageOne();
+                if (typeof window.navigationManager === 'undefined') {
+                  console.error('❌ NavigationManager not available - cannot navigate to page one');
+                  throw new Error('NavigationManager not loaded');
+                }
+                window.navigationManager.navigateToPageOne();
 
               } catch (error) {
                 console.error('❌ Failed to save state:', error);
@@ -1744,6 +1378,32 @@ console.log('  💡 Run diagnoseDownloadItems() in console to analyze URLs');
 
         startDownloadProcess(request.startDate, request.endDate, request.accountType, request.dateRangeType);
         sendResponse({ success: true, message: 'Download started' });
+        return true;
+      }
+
+      if (request.action === "getContentState") {
+        console.log('📊 Getting content script state...');
+        try {
+          const pm = await getPaginationManager();
+          const state = pm?.state || {};
+          sendResponse({
+            hasState: true,
+            isRunning: state.isRunning || false,
+            isComplete: state.isComplete || false,
+            currentPage: state.currentPage || 0,
+            totalPages: state.totalPages || 0,
+            downloadItems: state.downloadItems || [],
+            startDate: state.startDate,
+            endDate: state.endDate,
+            accountType: state.accountType
+          });
+        } catch (error) {
+          console.error('❌ Error getting content state:', error);
+          sendResponse({
+            hasState: false,
+            error: error.message
+          });
+        }
         return true;
       }
 

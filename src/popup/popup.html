@@ -8,6 +8,13 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="styles/design-system.css">
+  <link rel="stylesheet" href="styles/animations.css">
+  <link rel="stylesheet" href="styles/header.css">
+  <link rel="stylesheet" href="styles/card-components.css">
+  <link rel="stylesheet" href="styles/form-styles.css">
+  <link rel="stylesheet" href="styles/state-ui.css">
+  <link rel="stylesheet" href="styles/toast-messages.css">
 </head>
 <body>
   <!-- Background decorative elements -->
@@ -128,6 +135,15 @@
                   <option value="5">Fast (5 at a time)</option>
                   <option value="10">Very Fast (10 at a time)</option>
                 </select>
+              </div>
+              <div class="option-group">
+                <label class="option-label">
+                  <input type="checkbox" id="uploadToDrive">
+                  <span>📁 Upload to Google Drive after download</span>
+                </label>
+                <div class="option-description">
+                  <small>Automatically upload completed invoices to Google Drive for accounting workflow</small>
+                </div>
               </div>
             </div>
           </details>
@@ -252,6 +268,15 @@
 
   </div>
 
+  <!-- Load modular JavaScript components -->
+  <script src="modules/state-management.js"></script>
+  <script src="modules/ui-helpers.js"></script>
+  <script src="modules/state-transitions.js"></script>
+  <script src="modules/advanced-options.js"></script>
+  <script src="modules/download-preview.js"></script>
+  <script src="modules/progress-tracking.js"></script>
+  <script src="modules/popup-sync.js"></script>
+  <script src="modules/retry.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

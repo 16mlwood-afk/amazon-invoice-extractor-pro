@@ -50,7 +50,7 @@ function validateExtension() {
       }
 
       // Check required permissions
-      const requiredPerms = ['activeTab', 'storage', 'downloads', 'tabs', 'scripting', 'notifications'];
+      const requiredPerms = ['storage', 'downloads', 'notifications', 'identity', 'tabs'];
       const missingPerms = requiredPerms.filter(p => !manifest.permissions?.includes(p));
       if (missingPerms.length > 0) {
         errors.push(`Missing required permissions: ${missingPerms.join(', ')}`);

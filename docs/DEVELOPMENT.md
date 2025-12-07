@@ -113,7 +113,7 @@ npm run package
 npm run deploy
 
 # 2. The deployment ZIP is created:
-# amazon-invoice-extractor-pro-v2.0.0.zip
+# amazon-invoice-extractor-pro-v2.1.0.zip
 
 # 3. Upload to Chrome Web Store or distribute manually
 ```

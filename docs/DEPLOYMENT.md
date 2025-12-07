@@ -2,7 +2,7 @@
 
 ## Overview
 
-Amazon Invoice Extractor Pro v2.0.0 is a professional-grade Chrome extension for automated Amazon invoice management. This guide covers deployment to the Chrome Web Store and manual distribution.
+Amazon Invoice Extractor Pro v2.1.0 is a professional-grade Chrome extension for automated Amazon invoice management. This guide covers deployment to the Chrome Web Store and manual distribution.
 
 ## 📦 Pre-Deployment Checklist
 
@@ -51,7 +51,7 @@ npm run deploy
 
 ### Build Output
 - `dist/` - Production-ready extension files
-- `amazon-invoice-extractor-pro-v2.0.0.zip` - Chrome Web Store package
+- `amazon-invoice-extractor-pro-v2.1.0.zip` - Chrome Web Store package
 - `version.json` - Build metadata
 
 ## 🌐 Chrome Web Store Deployment
@@ -63,7 +63,7 @@ npm run deploy
 
 ### 2. Extension Upload
 1. Click "Add a new item"
-2. Upload `amazon-invoice-extractor-pro-v2.0.0.zip`
+2. Upload `amazon-invoice-extractor-pro-v2.1.0.zip`
 3. Fill in store listing details:
 
 #### Store Listing Information
@@ -188,4 +188,4 @@ For deployment issues or questions:
 
 **Ready for launch! 🚀**
 
-The Amazon Invoice Extractor Pro v2.0.0 is a comprehensive, professional-grade solution ready for enterprise deployment and Chrome Web Store distribution.
+The Amazon Invoice Extractor Pro v2.1.0 is a comprehensive, professional-grade solution ready for enterprise deployment and Chrome Web Store distribution.

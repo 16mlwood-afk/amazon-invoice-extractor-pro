@@ -1,18 +1,25 @@
 {
   "manifest_version": 3,
   "name": "Amazon Invoice Extractor Pro",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "Professional Amazon invoice downloader with multi-marketplace support, advanced queue management, and automated organization",
   "author": "Deal Detectives",
   "permissions": [
-    "activeTab",
     "storage",
     "downloads",
+    "notifications",
+    "identity",
     "tabs",
-    "scripting",
-    "notifications"
+    "scripting"
   ],
+  "oauth2": {
+    "client_id": "20517506951-bv4gu5vjm5pd97bikqfaghdtjadad4s4.apps.googleusercontent.com",
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.file"
+    ]
+  },
   "host_permissions": [
+    "https://www.googleapis.com/*",
     "*://*.amazon.com/*",
     "*://*.amazon.de/*",
     "*://*.amazon.nl/*",
@@ -72,6 +79,8 @@
         "https://*.amazon.ca/your-orders/invoice*"
       ],
       "js": [
+        "utils/NavigationManager.js",
+        "utils/OrderDataExtractor.js",
         "content/helpers.js",
         "content/download-manager.js",
         "pagination-manager.js",

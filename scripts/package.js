@@ -13,6 +13,10 @@ const DIST_DIR = path.join(ROOT_DIR, 'dist');
 const SRC_DIR = path.join(ROOT_DIR, 'src');
 const PUBLIC_DIR = path.join(ROOT_DIR, 'public');
 
+// Read version from package.json
+const packageJson = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf8'));
+const VERSION = packageJson.version;
+
 // Files to include in the extension package
 const INCLUDE_FILES = [
   // Public assets
@@ -23,6 +27,8 @@ const INCLUDE_FILES = [
   { src: 'src/popup/popup.html', dest: 'popup.html' },
   { src: 'src/popup/popup.js', dest: 'popup.js' },
   { src: 'src/popup/popup.css', dest: 'popup.css' },
+  { src: 'src/popup/modules/', dest: 'modules/' },
+  { src: 'src/popup/styles/', dest: 'styles/' },
   { src: 'src/options/options.html', dest: 'options.html' },
   { src: 'src/options/options.js', dest: 'options.js' },
   { src: 'src/options/options.css', dest: 'options.css' },
@@ -31,6 +37,7 @@ const INCLUDE_FILES = [
   { src: 'src/history/history.js', dest: 'history.js' },
 
   // Core scripts
+  // Note: All utils files are copied via the 'src/utils/' directory copy below
   { src: 'src/content/helpers.js', dest: 'content/helpers.js' },
   { src: 'src/content/download-manager.js', dest: 'content/download-manager.js' },
   { src: 'src/content/pagination-manager.js', dest: 'pagination-manager.js' },
@@ -45,10 +52,10 @@ const INCLUDE_FILES = [
   'src/common.js',
 
   // Modules
-  'src/utils/',
-  'src/config/',
-  'src/handlers/',
-  'src/state/'
+  { src: 'src/utils/', dest: 'utils/' },
+  { src: 'src/config/', dest: 'config/' },
+  { src: 'src/handlers/', dest: 'handlers/' },
+  { src: 'src/state/', dest: 'state/' }
 ];
 
 // Files to exclude from packaging
@@ -68,7 +75,7 @@ const EXCLUDE_PATTERNS = [
 ];
 
 function packageExtension() {
-  console.log('📦 Packaging Amazon Invoice Extractor Pro v2.0.1...');
+  console.log(`📦 Packaging Amazon Invoice Extractor Pro v${VERSION}...`);
 
   try {
     // Clean dist directory
@@ -117,7 +124,7 @@ function packageExtension() {
 
     // Create version info
     const versionInfo = {
-      version: '2.0.1',
+      version: VERSION,
       buildDate: new Date().toISOString(),
       buildId: Date.now().toString(36),
       features: [
@@ -189,7 +196,7 @@ function validatePackage() {
   }
 
   // Validate permissions
-  const requiredPermissions = ['activeTab', 'storage', 'downloads', 'tabs', 'scripting', 'notifications'];
+  const requiredPermissions = ['storage', 'downloads', 'notifications', 'identity', 'tabs'];
   for (const perm of requiredPermissions) {
     if (!manifest.permissions.includes(perm)) {
       throw new Error(`Missing required permission: ${perm}`);

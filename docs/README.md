@@ -157,7 +157,7 @@ The extension requires the following permissions:
 - **⚡ ENHANCED**: Download preparation happens immediately instead of after all pages are collected
 - **🎯 RESULT**: No more incomplete downloads when collecting orders from multiple pages
 
-### v2.0.0 - Major Release
+### v2.1.0 - Google Drive Integration Release
 - Complete rewrite with Manifest V3 support
 - Multi-marketplace coordinated downloads
 - Advanced bandwidth adaptation

@@ -147,34 +147,25 @@ class MarketplaceCoordinator {
 
   // Open marketplace tab
   async openMarketplaceTab(domain) {
-    return new Promise((resolve, reject) => {
+    try {
       const url = `https://${domain}`;
-
-      chrome.tabs.create({ url: url, active: false }, (tab) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(`Failed to open ${domain}: ${chrome.runtime.lastError.message}`));
-        } else {
-          console.log(`📄 Opened tab for ${domain} (ID: ${tab.id})`);
-          resolve(tab);
-        }
-      });
-    });
+      const tab = await chrome.tabs.create({ url: url, active: false });
+      console.log(`📄 Opened tab for ${domain} (ID: ${tab.id})`);
+      return tab;
+    } catch (error) {
+      throw new Error(`Failed to open ${domain}: ${error.message}`);
+    }
   }
 
   // Navigate to orders page
   async navigateToOrdersPage(tabId, marketplace) {
-    const ordersUrl = this.getOrdersUrl(marketplace);
-
-    return new Promise((resolve, reject) => {
-      chrome.tabs.update(tabId, { url: ordersUrl }, () => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(`Failed to navigate to orders: ${chrome.runtime.lastError.message}`));
-        } else {
-          console.log(`🧭 Navigated to orders page: ${ordersUrl}`);
-          resolve();
-        }
-      });
-    });
+    try {
+      const ordersUrl = this.getOrdersUrl(marketplace);
+      await chrome.tabs.update(tabId, { url: ordersUrl });
+      console.log(`🧭 Navigated to orders page: ${ordersUrl}`);
+    } catch (error) {
+      throw new Error(`Failed to navigate to orders: ${error.message}`);
+    }
   }
 
   // Get orders URL for marketplace
@@ -196,37 +187,26 @@ class MarketplaceCoordinator {
 
   // Wait for orders page to load
   async waitForOrdersPage(tabId, marketplace) {
-    return new Promise((resolve, reject) => {
-      const maxWait = 30000; // 30 seconds
-      const startTime = Date.now();
+    const maxWait = 30000; // 30 seconds
+    const startTime = Date.now();
 
-      const checkLoaded = () => {
-        chrome.tabs.sendMessage(tabId, { action: 'checkOrdersPageLoaded' }, (response) => {
-          if (chrome.runtime.lastError) {
-            // Content script not ready yet
-            if (Date.now() - startTime < maxWait) {
-              setTimeout(checkLoaded, 1000);
-            } else {
-              reject(new Error('Orders page failed to load within timeout'));
-            }
-            return;
-          }
+    const checkLoaded = async () => {
+      try {
+        const response = await chrome.tabs.sendMessage(tabId, { action: 'checkOrdersPageLoaded' });
+        // If we got here, message was received - page is loaded
+        return response;
+      } catch (error) {
+        // Content script not ready yet
+        if (Date.now() - startTime < maxWait) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return checkLoaded();
+        } else {
+          throw new Error('Orders page failed to load within timeout');
+        }
+      }
+    };
 
-          if (response && response.loaded) {
-            console.log(`✅ Orders page loaded for ${marketplace.name}`);
-            resolve();
-          } else {
-            if (Date.now() - startTime < maxWait) {
-              setTimeout(checkLoaded, 1000);
-            } else {
-              reject(new Error('Orders page failed to load within timeout'));
-            }
-          }
-        });
-      };
-
-      checkLoaded();
-    });
+    return checkLoaded();
   }
 
   // Inject content script

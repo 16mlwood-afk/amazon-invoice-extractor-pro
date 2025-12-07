@@ -1,4 +1,4 @@
-# 🚀 Amazon Invoice Extractor Pro v2.0.0 - Internal Deployment
+# 🚀 Amazon Invoice Extractor Pro v2.1.0 - Internal Deployment
 
 ## Overview
 
@@ -26,7 +26,7 @@ This document provides instructions for deploying the Amazon Invoice Extractor P
 
 1. **Extract the package** (if using ZIP):
    ```bash
-   unzip amazon-invoice-extractor-pro-v2.0.0.zip -d amazon-invoice-extractor-pro
+   unzip amazon-invoice-extractor-pro-v2.1.0.zip -d amazon-invoice-extractor-pro
    ```
 
 2. **Open Chrome Developer Mode**:
@@ -209,4 +209,4 @@ For deployment issues or questions:
 
 **Ready for internal deployment! 🚀**
 
-The Amazon Invoice Extractor Pro v2.0.0 is packaged and ready for enterprise distribution within your organization.
+The Amazon Invoice Extractor Pro v2.1.0 is packaged and ready for enterprise distribution within your organization.

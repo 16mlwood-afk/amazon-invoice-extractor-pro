@@ -1,3 +1,10 @@
+// ===== IMPORT MODULES =====
+// importScripts('utils/LicenseManager.js');
+importScripts('utils/SessionManager.js');
+importScripts('state/DownloadStateManager.js');
+importScripts('utils/ContentScriptManager.js');
+importScripts('utils/DownloadProcessor.js');
+
 // ===== INTERNAL BUILD: AUTO-ACTIVATION =====
 
 const INTERNAL_LICENSE = 'INTERNAL-BUILD-2024';
@@ -13,42 +20,6 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 // ===== END INTERNAL BUILD CONFIG =====
-
-
-
-// ===== SESSION COUNTER MANAGEMENT =====
-
-/**
- * Get the next session number for a marketplace
- * @param {string} marketplace - The marketplace code (e.g., 'DE', 'UK')
- * @returns {Promise<number>} The next session number
- */
-async function getNextSessionNumber(marketplace) {
-  const result = await chrome.storage.local.get(['sessionCounters']);
-  const counters = result.sessionCounters || {};
-
-  // Get current counter for this marketplace, default to 0
-  const currentCount = counters[marketplace] || 0;
-  const nextCount = currentCount + 1;
-
-  // Save the incremented counter
-  counters[marketplace] = nextCount;
-  await chrome.storage.local.set({ sessionCounters: counters });
-
-  console.log(`🔢 Session number for ${marketplace}: ${nextCount}`);
-  return nextCount;
-}
-
-/**
- * Format session number with leading zeros
- * @param {number} sessionNum - The session number
- * @returns {string} Formatted session (e.g., "001", "042", "999")
- */
-function formatSessionNumber(sessionNum) {
-  return String(sessionNum).padStart(3, '0');
-}
-
-// ===== END SESSION COUNTER MANAGEMENT =====
 
 
 
@@ -80,47 +51,7 @@ let downloadState = {
 
 
 
-// Reset download state
-
-function resetDownloadState() {
-
-  downloadState = {
-
-    isDownloading: false,
-
-    current: 0,
-
-    total: 0,
-
-    successful: 0,
-
-    failed: 0,
-
-    startTime: null,
-
-    downloadItems: []
-
-  };
-
-  console.log('🔄 Download state reset');
-
-}
-
-
-
-// Get current download state
-
-function getDownloadState() {
-
-  return {
-
-    ...downloadState,
-
-    duration: downloadState.startTime ? Date.now() - downloadState.startTime : 0
-
-  };
-
-}
+// Download state management is now handled by DownloadStateManager module
 
 
 
@@ -168,11 +99,15 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   }
 });
 
+console.log('🎧 BACKGROUND SCRIPT: Message listener active');
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('📨 BACKGROUND RECEIVED MESSAGE:', request);
+
   // ADD THIS NEW HANDLER AT THE TOP:
   if (request.action === 'getDownloadState') {
     console.log('📊 Popup requesting download state');
-    const state = getDownloadState();
+    const state = downloadStateManager.getDownloadState();
     console.log('📊 Sending download state to popup:', state);
     sendResponse({
       success: true,
@@ -183,6 +118,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Handle background download requests
   if (request.type === 'startDownloads') {
+    console.log('🎯 MESSAGE RECEIVED: startDownloads type detected');
     console.log('📨 DIAGNOSTIC: Received startDownloads message:', {
       hasDownloadItems: !!request.downloadItems,
       itemCount: request.downloadItems?.length,
@@ -199,7 +135,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('📅 RAW dateRangeType VALUE:', request.dateRangeType);
 
     console.log(`📦 Background received download request: ${request.downloadItems.length} items`);
-    processDownloads(request.downloadItems, request.marketplace, request.concurrent, request.startDate, request.endDate, request.dateRangeType);
+
+    // Process downloads asynchronously
+    processDownloads(request.downloadItems, request.marketplace, request.concurrent, request.startDate, request.endDate, request.dateRangeType)
+      .then(() => {
+        console.log('✅ Download processing completed');
+      })
+      .catch(error => {
+        console.error('❌ Download processing failed:', error);
+      });
+
     sendResponse({ success: true });
     return true;
   }
@@ -214,7 +159,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "executeContentScript") {
-    executeContentScript();
+    contentScriptManager.executeContentScript();
     sendResponse({success: true});
     return true;
   }
@@ -531,7 +476,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     console.log('✅ URL validated as direct PDF download');
 
-    let sanitizedFilename = sanitizeFilename(request.filename);
+    let sanitizedFilename = downloadProcessor.sanitizeFilename(request.filename);
 
     // Specifieke aanpassing voor Duitse facturen
     if (sanitizedFilename.includes('Bestellnr')) {
@@ -721,29 +666,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === "createTab") {
-    chrome.tabs.create({ url: request.url, active: false }, (tab) => {
-      if (chrome.runtime.lastError) {
-        console.error('Fout bij het aanmaken van tabblad:', chrome.runtime.lastError);
-        sendResponse({ error: chrome.runtime.lastError });
-        return;
-      }
+    (async () => {
+      try {
+        const tab = await chrome.tabs.create({ url: request.url, active: false });
 
-      chrome.tabs.onUpdated.addListener(function listener(tabId, info) {
-        if (tabId === tab.id && info.status === 'complete') {
-          chrome.tabs.onUpdated.removeListener(listener);
-          chrome.tabs.sendMessage(tabId, { action: "downloadOpenedPDF", filename: request.filename }, (response) => {
-            if (chrome.runtime.lastError) {
-              console.error('Fout bij het verzenden van downloadOpenedPDF bericht:', chrome.runtime.lastError);
-              sendResponse({ error: chrome.runtime.lastError });
-            } else {
-              console.log(`Tax invoice download gestart`);
-              sendResponse({ success: true });
+        // Wait for tab to complete loading
+        await new Promise((resolve) => {
+          function listener(tabId, info) {
+            if (tabId === tab.id && info.status === 'complete') {
+              chrome.tabs.onUpdated.removeListener(listener);
+              resolve();
             }
+          }
+          chrome.tabs.onUpdated.addListener(listener);
+        });
+
+        // Send message to tab
+        try {
+          const response = await chrome.tabs.sendMessage(tab.id, {
+            action: "downloadOpenedPDF",
+            filename: request.filename
           });
+          console.log(`Tax invoice download gestart`);
+          sendResponse({ success: true });
+        } catch (error) {
+          console.error('Fout bij het verzenden van downloadOpenedPDF bericht:', error);
+          sendResponse({ error: error.message });
         }
-      });
-    });
-    return true;
+      } catch (error) {
+        console.error('Fout bij het aanmaken van tabblad:', error);
+        sendResponse({ error: error.message });
+      }
+    })();
+
+    return true; // Keep channel open for async response
   }
 
   if (request.action === "closeCurrentTab") {
@@ -836,7 +792,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   // Handle PDF URL extraction requests from content script
   if (request.action === "extractPdfUrl") {
-    extractPdfUrlFromInvoicePage(request.invoicePageUrl).then(pdfUrl => {
+    downloadProcessor.extractPdfUrlFromInvoicePage(request.invoicePageUrl).then(pdfUrl => {
       sendResponse({ success: true, pdfUrl: pdfUrl });
     }).catch(error => {
       console.error('❌ PDF extraction error:', error);
@@ -867,46 +823,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-function executeContentScript() {
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    if (tabs.length === 0) {
-      console.error('Geen actieve tab gevonden');
-      return;
-    }
-    const tabId = tabs[0].id;
-    // Correct file names for your project - match manifest.json order
-    const scripts = ['helpers.js', 'download-manager.js', 'pagination-manager.js', 'order-scraper.js', 'content-main.js'];
-
-    function injectNextScript(index) {
-      if (index >= scripts.length) {
-        console.log('Alle content scripts handmatig uitgevoerd');
-        return;
-      }
-
-      const script = scripts[index];
-      console.log(`💉 Injecting: ${script}`);
-
-      chrome.scripting.executeScript({
-        target: { tabId: tabId },
-        files: [script]
-      }, () => {
-        if (chrome.runtime.lastError) {
-          console.error(`Fout bij het uitvoeren van ${script}:`, chrome.runtime.lastError);
-        } else {
-          console.log(`${script} handmatig uitgevoerd`);
-        }
-        injectNextScript(index + 1);
-      });
-    }
-
-    injectNextScript(0);
-  });
-}
-// START_OBFUSCATE
-function getAmazonDomain(url) {
-  return url.includes('.de') ? 'amazon.de' : 'amazon.nl';
-}
-// END_OBFUSCATE
+// Content script management is now handled by ContentScriptManager module
 // ===== SETTINGS MANAGEMENT =====
 // User preferences and configuration
 
@@ -1691,19 +1608,17 @@ async function injectContentScripts(tabId, url) {
 
 async function processDownloads(downloadItems, marketplace, concurrent, startDate, endDate, dateRangeType) {
   const startTime = Date.now();
-  console.log(`📦 Processing ${downloadItems.length} downloads`);
+  console.log(`📦 PROCESS DOWNLOADS FUNCTION CALLED - Processing ${downloadItems.length} downloads`);
+  console.log('📦 Download items sample:', downloadItems.slice(0, 2));
+  console.log('📦 Marketplace:', marketplace, 'Concurrent:', concurrent);
 
   // 🆕 Get next session number for this marketplace
-  const sessionNum = await getNextSessionNumber(marketplace);
+  console.log('📦 Getting session number...');
+  const sessionNum = await sessionManager.getNextSessionNumber(marketplace);
+  console.log('📦 Session number obtained:', sessionNum);
 
   // Initialize download state
-  downloadState.isDownloading = true;
-  downloadState.total = downloadItems.length;
-  downloadState.current = 0;
-  downloadState.successful = 0;
-  downloadState.failed = 0;
-  downloadState.startTime = startTime;
-  downloadState.downloadItems = downloadItems;
+  downloadStateManager.startDownload(downloadItems.length);
   console.log('📊 Download state initialized:', downloadState);
 
   // 🆕 SEND INITIAL STATE TO POPUP
@@ -1747,7 +1662,7 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
         });
 
         // REPLACE THIS WITH SMART HANDLER:
-        const urlType = detectUrlType(downloadUrl);
+        const urlType = downloadProcessor.detectUrlType(downloadUrl);
         console.log(`📋 URL type: ${urlType} (${downloadUrl.substring(0, 50)}...)`);
 
         let finalPdfUrl;
@@ -1762,7 +1677,7 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
           console.log('🔄 Invoice page detected - extracting PDF URL...');
 
           try {
-            finalPdfUrl = await extractPdfUrlFromInvoicePage(downloadUrl);
+            finalPdfUrl = await downloadProcessor.extractPdfUrlFromInvoicePage(downloadUrl);
             console.log('✅ Extracted PDF URL:', finalPdfUrl.substring(0, 50) + '...');
           } catch (extractError) {
             console.error('❌ PDF extraction failed:', extractError.message);
@@ -1779,9 +1694,9 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
             console.log('🔄 Using invoiceUrl field instead:', finalPdfUrl.substring(0, 50) + '...');
 
             // Re-check the type of this URL
-            const invoiceUrlType = detectUrlType(finalPdfUrl);
+            const invoiceUrlType = downloadProcessor.detectUrlType(finalPdfUrl);
             if (invoiceUrlType === 'invoice_page') {
-              finalPdfUrl = await extractPdfUrlFromInvoicePage(finalPdfUrl);
+              finalPdfUrl = await downloadProcessor.extractPdfUrlFromInvoicePage(finalPdfUrl);
             }
           } else {
             throw new Error('Content script provided orders page URL with no valid invoiceUrl fallback');
@@ -1807,7 +1722,7 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
         }
 
         // Build folder path with monthly subfolder
-        const folderPath = buildFolderPath(
+        const folderPath = downloadProcessor.buildFolderPath(
           marketplace,
           startDate,
           endDate,
@@ -1837,22 +1752,12 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
               completed++;
 
               // Update state
-              downloadState.current = completed + failedDownloads.length;
-              downloadState.successful = completed;
-              downloadState.failed = failedDownloads.length;
-
-              // 🆕 BROADCAST PROGRESS TO POPUP
-              chrome.runtime.sendMessage({
-                action: 'downloadProgress',
-                current: downloadState.current,
-                total: downloadState.total,
-                successful: downloadState.successful,
-                failed: downloadState.failed
-              }).catch(() => {
-                console.log('ℹ️ Popup not open for progress update');
-              });
-
-              console.log(`📊 Progress: ${downloadState.current}/${downloadState.total}`);
+              downloadStateManager.updateProgress(
+                completed + failedDownloads.length,
+                downloadStateManager.getDownloadState().total,
+                completed,
+                failedDownloads.length
+              );
 
               // Track download
               trackDownload(downloadId, item.orderId, filename,
@@ -1869,17 +1774,12 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
             error: error.message
           });
 
-          downloadState.current = completed + failedDownloads.length;
-          downloadState.failed = failedDownloads.length;
-
-          // 🆕 BROADCAST EVEN ON ERROR
-          chrome.runtime.sendMessage({
-            action: 'downloadProgress',
-            current: downloadState.current,
-            total: downloadState.total,
-            successful: downloadState.successful,
-            failed: downloadState.failed
-          }).catch(() => {});
+          downloadStateManager.updateProgress(
+            completed + failedDownloads.length,
+            downloadStateManager.getDownloadState().total,
+            completed,
+            failedDownloads.length
+          );
         });
 
       } catch (error) {
@@ -1890,17 +1790,12 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
           error: error.message
         });
 
-        downloadState.current = completed + failedDownloads.length;
-        downloadState.failed = failedDownloads.length;
-
-        // 🆕 BROADCAST EVEN ON ERROR
-        chrome.runtime.sendMessage({
-          action: 'downloadProgress',
-          current: downloadState.current,
-          total: downloadState.total,
-          successful: downloadState.successful,
-          failed: downloadState.failed
-        }).catch(() => {});
+        downloadStateManager.updateProgress(
+          completed + failedDownloads.length,
+          downloadStateManager.getDownloadState().total,
+          completed,
+          failedDownloads.length
+        );
       }
     }));
 
@@ -1911,6 +1806,54 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
   }
 
   console.log(`📊 Final: ${completed} successful, ${failedDownloads.length} failed`);
+
+  // 🆕 AUTO-UPLOAD TO GOOGLE DRIVE
+  if (completed > 0) {
+    console.log('☁️ Starting Google Drive upload...');
+
+    const sessionMetadata = {
+      sessionNumber: sessionNum,
+      marketplace: marketplace,
+      startDate: startDate,
+      endDate: endDate,
+      rangeType: dateRangeType,
+      totalInvoices: completed,
+      downloadedItems: downloadItems,
+      downloadTime: new Date().toISOString()
+    };
+
+    try {
+      // Build session folder path (same logic as DownloadProcessor.buildFolderPath)
+      const baseFolder = `Amazon-${marketplace}`;
+      const sessionPrefix = `Session_${String(sessionNum).padStart(3, '0')}`;
+      let dateRangeStr;
+      if (startDate && endDate && dateRangeType) {
+        dateRangeStr = `${startDate}_to_${endDate}_${dateRangeType}`;
+      } else {
+        const today = new Date().toISOString().split('T')[0];
+        dateRangeStr = `Unknown_Range_${today}`;
+      }
+      const sessionFolderPath = `${baseFolder}/${sessionPrefix}_${dateRangeStr}`;
+
+      await uploadSessionToGoogleDrive(sessionFolderPath, sessionMetadata);
+
+      // Send message to popup
+      chrome.runtime.sendMessage({
+        action: 'uploadComplete',
+        success: true,
+        message: `Uploaded ${completed} invoices to Google Drive`
+      }).catch(() => {});
+
+    } catch (error) {
+      console.error('❌ Upload failed:', error);
+
+      chrome.runtime.sendMessage({
+        action: 'uploadComplete',
+        success: false,
+        message: 'Upload failed - files saved locally'
+      }).catch(() => {});
+    }
+  }
 
   // 🆕 SEND COMPLETION MESSAGE
   chrome.runtime.sendMessage({
@@ -1927,361 +1870,263 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
   });
 
   // Reset state
-  downloadState.isDownloading = false;
+  downloadStateManager.endDownload();
 }
 
-const WHOP_API_URL = 'https://api.whop.com';
-const API_KEY = atob('YmZWUzcyeV9uLXc0U2NMaXR4TTlqWUxDZVJ6cEg3WlR3emljUXhuZnNvNA==');
-// START_OBFUSCATE
-function obfuscateLicenseKey(key) {
-  const base64 = btoa(key);
-  const parts = base64.match(/.{1,4}/g) || [];
-  return parts.reverse().join('_');
-}
+// License management is now handled by LicenseManager module
+// licenseManager.schedulePeriodicLicenseCheck(); // INTERNAL BUILD: Disabled
 
-function deobfuscateLicenseKey(obfuscatedKey) {
-  const parts = obfuscatedKey.split('_');
-  const base64 = parts.reverse().join('');
-  return atob(base64);
-}
-// END_OBFUSCATE
-async function validateAndActivateLicense(obfuscatedLicenseKey) {
-  const licenseKey = deobfuscateLicenseKey(obfuscatedLicenseKey);
-  const url = `${WHOP_API_URL}/v5/company/memberships/${licenseKey}`;
-  console.log('Attempting to validate license');
-  try {
-    const getMembershipResponse = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    console.log('Response status:', getMembershipResponse.status);
+// URL detection and PDF extraction are now handled by DownloadProcessor module
 
-    if (!getMembershipResponse.ok) {
-      const errorText = await getMembershipResponse.text();
-      console.error('Fout bij het ophalen van membership:', errorText);
-      return { isValid: false, errorMessage: 'Ongeldige licentie' };
-    }
+// Filename sanitization and folder path building are now handled by DownloadProcessor module
 
-    const membershipData = await getMembershipResponse.json();
+// ===== MESSAGE HANDLERS =====
 
-    if (membershipData.metadata && membershipData.metadata.in_use) {
-      return { isValid: false, errorMessage: 'Deze licentie is al in gebruik' };
-    }
+// Handle messages from popup and content scripts
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('📨 Background received message:', message.action);
 
-    const updateResponse = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        metadata: { in_use: true }
+  if (message.action === 'uploadToGoogleDrive') {
+    // Handle Google Drive upload request
+    uploadSessionToGoogleDrive(message.sessionPath, message.metadata)
+      .then(result => {
+        sendResponse(result);
       })
-    });
+      .catch(error => {
+        console.error('❌ Google Drive upload error:', error);
+        sendResponse({ success: false, error: error.message });
+      });
 
-    if (!updateResponse.ok) {
-      const errorText = await updateResponse.text();
-      console.error('Fout bij het updaten van membership:', errorText);
-      return { isValid: false, errorMessage: 'Fout bij het activeren van de licentie' };
-    }
-
-    const updatedMembershipData = await updateResponse.json();
-
-    return { isValid: true, data: updatedMembershipData };
-  } catch (error) {
-    console.error('Fout bij licentievalidatie:', error);
-    return { isValid: false, errorMessage: 'Er is een onverwachte fout opgetreden' };
+    // Return true to indicate we'll respond asynchronously
+    return true;
   }
-}
 
-async function resetLicense(obfuscatedLicenseKey) {
-  const licenseKey = deobfuscateLicenseKey(obfuscatedLicenseKey);
-  const url = `${WHOP_API_URL}/v5/company/memberships/${licenseKey}`;
-  console.log('Attempting to reset license');
+  // Handle other messages...
+  // (existing message handlers can be added here)
+});
+
+// ===== GOOGLE DRIVE INTEGRATION =====
+
+/**
+ * Upload session folder to Google Drive
+ * @param {string} sessionPath - Local path like "Amazon-DE/Session_001_Q1_Aug_Oct"
+ * @param {Object} metadata - Session metadata (invoice count, totals, etc.)
+ */
+async function uploadSessionToGoogleDrive(sessionPath, metadata) {
+  console.log('☁️ Uploading session to Google Drive:', sessionPath);
 
   try {
-    const resetResponse = await fetch(url, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        metadata: { in_use: false }
-      })
-    });
+    // Get OAuth token for Google Drive
+    const token = await getGoogleDriveToken();
 
-    if (!resetResponse.ok) {
-      const errorText = await resetResponse.text();
-      console.error('Fout bij het resetten van de licentie:', errorText);
-      return { success: false, errorMessage: 'Fout bij het resetten van de licentie' };
-    }
+    // Create folder structure in Drive
+    const driveFolderName = `Amazon_Invoices_Pending/${sessionPath.replace(/\//g, '_')}`;
+    const folderId = await createDriveFolder(driveFolderName, token);
 
-    const updatedMembershipData = await resetResponse.json();
+    // Get downloaded items from metadata
+    const downloadedItems = metadata.downloadedItems || [];
+    console.log(`📤 Uploading ${downloadedItems.length} files to Drive...`);
 
-    return { success: true, data: updatedMembershipData };
-  } catch (error) {
-    console.error('Fout bij het resetten van de licentie:', error);
-    return { success: false, errorMessage: 'Er is een onverwachte fout opgetreden bij het resetten van de licentie' };
-  }
-}
-
-let isLicenseValid = true; // INTERNAL BUILD: Always valid
-
-function schedulePeriodicLicenseCheck() {
-  setInterval(() => {
-    chrome.storage.sync.get('licenseKey', function(data) {
-      if (data.licenseKey) {
-        validateAndActivateLicense(data.licenseKey)
-          .then(result => {
-            if (!result.isValid) {
-              chrome.storage.sync.remove('licenseKey', () => {
-                if (chrome.runtime.lastError) {
-                  console.error('Fout bij het verwijderen van de licentiesleutel:', chrome.runtime.lastError);
-                }
-                chrome.runtime.sendMessage({action: "licenseInvalid"});
-              });
-            } else {
-              isLicenseValid = true;
-            }
-          })
-          .catch(error => {
-            console.error('Fout bij het valideren van de licentie:', error);
-          });
-      } else {
-        isLicenseValid = false;
-      }
-    });
-  }, 1 * 60 * 60 * 1000); // Controleer elke uur
-}
-
-// schedulePeriodicLicenseCheck(); // INTERNAL BUILD: Disabled
-
-// URL type detection function
-function detectUrlType(url) {
-  // Direct PDF URL
-  if (url.includes('/documents/download/') && url.includes('/invoice.pdf')) {
-    return 'direct_pdf';
-  }
-
-  // Amazon invoice popover page
-  if (url.includes('/invoice/popover') || url.includes('gp/css/summary/print')) {
-    return 'invoice_page';
-  }
-
-  // Orders page (WRONG - content script bug)
-  if (url.includes('/your-orders/orders')) {
-    return 'orders_page';
-  }
-
-  // Unknown/unsupported
-  return 'unknown';
-}
-
-// PDF URL extraction function (moved from content script to background script)
-async function extractPdfUrlFromInvoicePage(invoicePageUrl) {
-  console.log('📄 [BACKGROUND] Extracting PDF URL from invoice page:', invoicePageUrl);
-
-  return new Promise((resolve, reject) => {
-    let tabId;
-    let timeoutId;
-    let listenerAdded = false;
-
-    // Create a background tab to load the invoice page
-    chrome.tabs.create({
-      url: invoicePageUrl,
-      active: false // Background tab
-    }, (tab) => {
-      if (chrome.runtime.lastError) {
-        console.error('❌ [BACKGROUND] Failed to create tab:', chrome.runtime.lastError);
-        reject(new Error(chrome.runtime.lastError.message));
-        return;
-      }
-
-      tabId = tab.id;
-      console.log('🔗 [BACKGROUND] Created background tab:', tabId);
-
-      // Set up timeout fallback
-      timeoutId = setTimeout(() => {
-        cleanup();
-        console.warn('⚠️ [BACKGROUND] Tab extraction timeout (15s), using original URL');
-        resolve(invoicePageUrl);
-      }, 15000);
-
-      // Listen for when the tab is fully loaded
-      function onTabUpdated(updatedTabId, changeInfo) {
-        if (updatedTabId === tabId && changeInfo.status === 'complete') {
-          // Remove listener to prevent multiple calls
-          if (listenerAdded) {
-            chrome.tabs.onUpdated.removeListener(onTabUpdated);
-            listenerAdded = false;
-          }
-
-          // Clear timeout since we got a response
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-          }
-
-          // Small delay to ensure page is fully rendered
-          setTimeout(() => {
-            // Now inject script to extract PDF URL
-            chrome.scripting.executeScript({
-              target: { tabId: tabId },
-              function: extractPdfFromPage
-            }, (results) => {
-              cleanup();
-
-              if (chrome.runtime.lastError) {
-                console.error('❌ [BACKGROUND] Script execution failed:', chrome.runtime.lastError);
-                resolve(invoicePageUrl);
-                return;
-              }
-
-              if (results && results[0] && results[0].result) {
-                const pdfUrl = results[0].result;
-                console.log('✅ [BACKGROUND] Extracted PDF URL from tab:', pdfUrl);
-                resolve(pdfUrl);
-              } else {
-                console.warn('⚠️ [BACKGROUND] No PDF URL found in tab, using original URL');
-                resolve(invoicePageUrl);
-              }
-            });
-          }, 1000); // 1 second delay for page rendering
+    // Upload each file from the downloaded items
+    let uploadedCount = 0;
+    for (const item of downloadedItems) {
+      if (item.filename && item.downloadUrl) {
+        try {
+          await uploadFileFromUrl(item.downloadUrl, item.filename, folderId, token);
+          uploadedCount++;
+          console.log(`✅ Uploaded ${uploadedCount}/${downloadedItems.length}: ${item.filename}`);
+        } catch (fileError) {
+          console.warn(`⚠️ Failed to upload ${item.filename}:`, fileError);
         }
       }
+    }
 
-      // Add the listener
-      chrome.tabs.onUpdated.addListener(onTabUpdated);
-      listenerAdded = true;
+    // Upload summary CSV
+    await uploadSessionSummaryCSV(metadata, folderId, token);
+
+    console.log('✅ All files uploaded to Google Drive!');
+
+    // Show success notification
+    chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon128.png',
+      title: '✅ Uploaded to Google Drive',
+      message: `${uploadedCount} invoices uploaded. Email will arrive on ${getNextFilingEmailDate()}`
     });
 
-    function cleanup() {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-      if (listenerAdded) {
-        chrome.tabs.onUpdated.removeListener(onTabUpdated);
-        listenerAdded = false;
-      }
-      if (tabId) {
-        chrome.tabs.remove(tabId, () => {
-          if (chrome.runtime.lastError) {
-            console.log('⚠️ [BACKGROUND] Tab already closed or removal failed:', chrome.runtime.lastError.message);
-          } else {
-            console.log('🧹 [BACKGROUND] Cleaned up background tab:', tabId);
-          }
-        });
-        tabId = null;
-      }
-    }
-  });
-}
+    return { success: true, folderId, uploadedCount };
 
-// Function to run in the background tab to extract PDF URL
-function extractPdfFromPage() {
-  // Try multiple selectors for PDF link
-  const selectors = [
-    'a[href*="invoice"][href*="download"]',
-    'a[href*=".pdf"]',
-    'a[href*="print"]',
-    '.a-button[href*="pdf"]'
-  ];
-
-  for (const selector of selectors) {
-    const link = document.querySelector(selector);
-    if (link && link.href) {
-      return link.href;
-    }
+  } catch (error) {
+    console.error('❌ Google Drive upload failed:', error);
+    throw error;
   }
-
-  return null; // No PDF link found
-}
-
-function sanitizeFilename(filename) {
-  // IMPORTANT: We allow forward slashes for folder structure!
-  // Chrome's downloads API will create folders automatically
-
-  // Remove invalid characters EXCEPT forward slashes
-  let sanitized = filename.replace(/[<>:"\\|?*\x00-\x1F]/g, '_');
-
-  // Prevent directory traversal attacks
-  sanitized = sanitized.replace(/\.\.\//g, ''); // Remove ../
-  sanitized = sanitized.replace(/^\.+/, '');     // Remove leading dots
-
-  // Handle Windows reserved names (only in the final filename, not folders)
-  const parts = sanitized.split('/');
-  parts[parts.length - 1] = parts[parts.length - 1]
-    .replace(/^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i, '_$1');
-
-  return parts.join('/').slice(0, 255);
 }
 
 /**
- * Build the folder path for downloads with monthly subfolders
- * @param {string} marketplace - The marketplace code
- * @param {string} startDate - ISO date string (YYYY-MM-DD)
- * @param {string} endDate - ISO date string (YYYY-MM-DD)
- * @param {string} rangeType - 'Q1_Aug_Oct', 'Q2_Nov_Jan', etc.
- * @param {number} sessionNum - The session number for this download batch
- * @param {string} invoiceDate - ISO date string for this specific invoice (YYYY-MM-DD)
- * @returns {string} The folder path with monthly subfolder
+ * Get Google Drive OAuth token
  */
-function buildFolderPath(marketplace, startDate, endDate, rangeType, sessionNum, invoiceDate) {
-  console.log('📁 Building folder path with params:', {
-    marketplace,
-    startDate,
-    endDate,
-    rangeType,
-    sessionNum,
-    invoiceDate
+async function getGoogleDriveToken() {
+  return new Promise((resolve, reject) => {
+    chrome.identity.getAuthToken({ interactive: true }, (token) => {
+      if (chrome.runtime.lastError) {
+        reject(chrome.runtime.lastError);
+      } else {
+        resolve(token);
+      }
+    });
+  });
+}
+
+/**
+ * Create folder in Google Drive
+ */
+async function createDriveFolder(folderName, token) {
+  const metadata = {
+    name: folderName,
+    mimeType: 'application/vnd.google-apps.folder'
+  };
+
+  const response = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(metadata)
   });
 
-  const baseFolder = `Amazon-${marketplace}`;
+  const data = await response.json();
+  return data.id;
+}
 
-  // Format session number (e.g., "Session_001")
-  const sessionPrefix = `Session_${formatSessionNumber(sessionNum)}`;
-
-  // Build date range string
-  let dateRangeStr;
-  if (startDate && endDate && rangeType) {
-    dateRangeStr = `${startDate}_to_${endDate}_${rangeType}`;
-  } else {
-    // Fallback for unknown date ranges
-    const today = new Date().toISOString().split('T')[0];
-    dateRangeStr = `Unknown_Range_${today}`;
+/**
+ * Upload single file to Google Drive from URL
+ */
+async function uploadFileFromUrl(fileUrl, fileName, folderId, token) {
+  // Fetch the file from the URL
+  const response = await fetch(fileUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch file: ${response.status}`);
   }
 
-  // Session folder: Amazon-DE/Session_001_2025-08-01_to_2025-10-31_Q1_Aug_Oct
-  const sessionFolder = `${baseFolder}/${sessionPrefix}_${dateRangeStr}`;
+  const fileData = await response.blob();
 
-  // Extract month subfolder from invoice date
-  let monthSubfolder = '';
-  if (invoiceDate) {
-    try {
-      const date = new Date(invoiceDate);
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0'); // 01-12
-      const monthName = date.toLocaleString('en-US', { month: 'long' }); // "August"
+  const metadata = {
+    name: fileName,
+    parents: [folderId]
+  };
 
-      monthSubfolder = `/${year}-${month}_${monthName}`;
-      console.log(`📅 Monthly subfolder: ${monthSubfolder}`);
-    } catch (error) {
-      console.warn('⚠️ Could not parse invoice date:', invoiceDate, error);
-      monthSubfolder = '/Unknown_Month';
-    }
-  } else {
-    console.warn('⚠️ No invoice date provided, using root session folder');
-    monthSubfolder = '';
+  const formData = new FormData();
+  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  formData.append('file', fileData);
+
+  const uploadResponse = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error(`Google Drive upload failed: ${uploadResponse.status}`);
   }
 
-  // Final path: Amazon-DE/Session_001_2025-08-01_to_2025-10-31_Q1_Aug_Oct/2025-08_August
-  const folderPath = `${sessionFolder}${monthSubfolder}`;
+  return await uploadResponse.json();
+}
 
-  console.log('📁 Final folder path:', folderPath);
-  return folderPath;
+/**
+ * Upload session summary CSV to Drive
+ */
+async function uploadSessionSummaryCSV(metadata, folderId, token) {
+  const csvContent = generateSessionSummaryCSV(metadata);
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+
+  const fileMetadata = {
+    name: '_SESSION_SUMMARY.csv',
+    parents: [folderId]
+  };
+
+  const formData = new FormData();
+  formData.append('metadata', new Blob([JSON.stringify(fileMetadata)], { type: 'application/json' }));
+  formData.append('file', blob);
+
+  await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  });
+}
+
+/**
+ * Generate CSV summary
+ */
+function generateSessionSummaryCSV(metadata) {
+  let csv = 'Order_ID,Invoice_Number,Date,Marketplace,Filename,Download_Time\n';
+
+  for (const item of metadata.downloadedItems) {
+    csv += `${item.orderId},${item.invoiceNumber},${item.date},${metadata.marketplace},${item.filename},${item.downloadTime}\n`;
+  }
+
+  return csv;
+}
+
+/**
+ * Read local file (for upload)
+ */
+async function readLocalFile(path) {
+  // For Chrome extensions, we need to use the chrome.downloads API to access downloaded files
+  // First, find the download by filename
+  const downloads = await chrome.downloads.search({
+    filename: path
+  });
+
+  if (downloads.length === 0) {
+    throw new Error(`File not found in downloads: ${path}`);
+  }
+
+  const download = downloads[0];
+
+  // Use chrome.downloads API to get the file data
+  // This requires the file to still be accessible (not moved/deleted)
+  try {
+    // Read the file using FileReader or similar
+    // Note: This is a simplified version. In practice, you might need to use
+    // chrome.downloads.download() with a URL or handle the file differently
+    const response = await fetch(`file:///${download.filename}`);
+    return await response.blob();
+  } catch (error) {
+    console.error('❌ Error reading local file:', error);
+    throw new Error(`Cannot read file: ${download.filename}`);
+  }
+}
+
+/**
+ * Calculate next filing email date based on current date
+ */
+function getNextFilingEmailDate() {
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-11
+  const currentYear = now.getFullYear();
+
+  // Determine current accounting quarter (Aug-Jul)
+  // Q1: Aug-Oct, Q2: Nov-Jan, Q3: Feb-Apr, Q4: May-Jul
+
+  let nextFilingDate;
+  let nextFilingYear = currentYear;
+
+  if (currentMonth >= 7 && currentMonth <= 9) { // Aug-Oct (Q1) - next filing is Feb 1st
+    nextFilingDate = 'February 1st';
+  } else if (currentMonth >= 10 || currentMonth <= 0) { // Nov-Jan (Q2) - next filing is May 1st
+    nextFilingDate = 'May 1st';
+  } else if (currentMonth >= 1 && currentMonth <= 3) { // Feb-Apr (Q3) - next filing is Aug 1st
+    nextFilingDate = 'August 1st';
+  } else if (currentMonth >= 4 && currentMonth <= 6) { // May-Jul (Q4) - next filing is Nov 1st
+    nextFilingDate = 'November 1st';
+    nextFilingYear = currentYear + 1; // Next year for Q4
+  }
+
+  return nextFilingYear > currentYear ? `${nextFilingDate}, ${nextFilingYear}` : nextFilingDate;
 }
