@@ -105,39 +105,6 @@ class ProfileManager {
     return !!settings.accountName;
   }
 
-  /**
-   * Set account type for this profile
-   */
-  async setAccountType(type) {
-    console.log('🔄 ProfileManager.setAccountType() called with:', type);
-
-    if (!type || typeof type !== 'string') {
-      throw new Error('Invalid account type');
-    }
-
-    const settings = await chrome.storage.local.get(this.storageKey);
-    const accountSettings = settings[this.storageKey] || {};
-
-    console.log('📋 Current account settings before type update:', accountSettings);
-
-    accountSettings.accountType = type;
-    accountSettings.lastUpdated = Date.now();
-
-    console.log('💾 Saving account settings with type:', accountSettings);
-
-    await chrome.storage.local.set({ [this.storageKey]: accountSettings });
-
-    console.log('✅ Account type updated and saved:', type);
-    return type;
-  }
-
-  /**
-   * Get account type for this profile
-   */
-  async getAccountType() {
-    const settings = await this.getAccountSettings();
-    return settings.accountType || 'bertha'; // Default to bertha
-  }
 
   /**
    * Generate short unique ID

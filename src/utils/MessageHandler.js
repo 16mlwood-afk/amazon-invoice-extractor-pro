@@ -1299,41 +1299,6 @@ class MessageHandler {
       }
     });
 
-    // GET ACCOUNT TYPE
-    this.registerHandler('getAccountType', async (request) => {
-      try {
-        const profileManager = new ProfileManager();
-        const accountType = await profileManager.getAccountType();
-
-        return {
-          success: true,
-          accountType: accountType
-        };
-      } catch (error) {
-        console.error('Error getting account type:', error);
-        return { success: false, error: error.message };
-      }
-    });
-
-    // SET ACCOUNT TYPE
-    this.registerHandler('setAccountType', async (request) => {
-      try {
-        if (!request.type) {
-          throw new Error('Account type is required');
-        }
-
-        const profileManager = new ProfileManager();
-        const accountType = await profileManager.setAccountType(request.type);
-
-        return {
-          success: true,
-          accountType: accountType
-        };
-      } catch (error) {
-        console.error('Error setting account type:', error);
-        return { success: false, error: error.message };
-      }
-    });
 
   }
 }

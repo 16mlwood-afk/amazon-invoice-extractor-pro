@@ -463,48 +463,65 @@ async function loadAccountName() {
 }
 
 /**
- * Load and set account type dropdown
+ * Load and set account name preset dropdown
  */
-async function loadAccountType() {
-  console.log('🔄 loadAccountType() called');
+async function loadAccountNamePreset() {
+  console.log('🔄 loadAccountNamePreset() called');
   try {
+    // Check current account name status
     const response = await chrome.runtime.sendMessage({
-      action: 'getAccountType'
+      action: 'getAccountIdentifier'
     });
 
-    console.log('📨 getAccountType response:', response);
+    console.log('📨 getAccountIdentifier response:', response);
 
-    if (response && response.success) {
-      const accountTypeDropdown = document.getElementById('accountTypeDropdown');
-      if (accountTypeDropdown) {
-        accountTypeDropdown.value = response.accountType;
-        console.log('📝 Setting account type in UI:', response.accountType);
+    if (response && response.accountId) {
+      const accountNameDropdown = document.getElementById('accountNameDropdown');
+      if (accountNameDropdown) {
+        const currentName = response.accountId.toLowerCase();
+        const presetOptions = ['bertha', 'vinc', '117', 'att', 'sales'];
+
+        // If current name matches a preset, select it
+        if (presetOptions.includes(currentName)) {
+          accountNameDropdown.value = currentName;
+        } else {
+          // Either auto-generated or custom name, show empty (Auto option)
+          accountNameDropdown.value = '';
+        }
+        console.log('📝 Setting account name preset in UI:', accountNameDropdown.value);
       }
-    } else {
-      console.error('Failed to load account type:', response?.error);
     }
   } catch (error) {
-    console.error('Error loading account type:', error);
+    console.error('Error loading account name preset:', error);
   }
 }
 
 /**
- * Save account type when dropdown changes
+ * Save account name when dropdown changes (sets custom account name)
  */
-async function saveAccountType(type) {
+async function saveAccountNamePreset(name) {
   try {
-    const response = await chrome.runtime.sendMessage({
-      action: 'setAccountType',
-      type: type
-    });
+    if (name && name.trim()) {
+      // Set custom account name to the selected preset
+      const response = await chrome.runtime.sendMessage({
+        action: 'setAccountName',
+        name: name
+      });
 
-    if (response && response.success) {
-      console.log('✅ Account type saved:', response.accountType);
+      if (response && response.success) {
+        console.log('✅ Account name set to preset:', response.accountName);
+        // Refresh the display
+        await loadAccountName();
+      } else {
+        console.error('Failed to set account name:', response?.error);
+      }
     } else {
-      console.error('Failed to save account type:', response?.error);
+      // Empty selection ("Auto") - user wants to use auto-generated name
+      // For now, we'll just log this - could implement clearing custom name in future
+      console.log('Auto selected - would reset to auto-generated name');
     }
   } catch (error) {
-    console.error('Error saving account type:', error);
+    console.error('Error setting account name preset:', error);
   }
 }
 
@@ -587,10 +604,10 @@ document.getElementById('edit-account-btn')?.addEventListener('click', async (ev
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔄 DOMContentLoaded fired in popup.js');
 
-  // Load account name and type
+  // Load account name and preset options
   await loadAccountName();
-  await loadAccountType();
-  console.log('✅ Account name and type loaded');
+  await loadAccountNamePreset();
+  console.log('✅ Account name and presets loaded');
 
   // Fiscal year info tooltip
   const fyInfoIcon = document.getElementById('fyInfoIcon');
@@ -683,9 +700,9 @@ document.addEventListener('DOMContentLoaded', async function() {
   document.getElementById('includeDigital').addEventListener('change', saveSettings);
   document.getElementById('concurrent').addEventListener('change', saveSettings);
 
-  // Account type dropdown
-  document.getElementById('accountTypeDropdown')?.addEventListener('change', async (e) => {
-    await saveAccountType(e.target.value);
+  // Account name preset dropdown
+  document.getElementById('accountNameDropdown')?.addEventListener('change', async (e) => {
+    await saveAccountNamePreset(e.target.value);
   });
 
   downloadBtn.addEventListener('click', function() {
