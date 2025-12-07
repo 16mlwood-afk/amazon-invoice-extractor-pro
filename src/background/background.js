@@ -147,6 +147,85 @@ async function findOrCreateDriveFolder(folderName, parentId, token) {
   return await lockPromise;
 }
 
+/**
+ * Find or create a root-level folder in Google Drive with caching and mutex locks
+ * @param {string} folderName - Name of the root folder to find/create
+ * @param {string} token - OAuth token
+ * @returns {Promise<string>} - Folder ID
+ */
+async function findOrCreateRootFolder(folderName, token) {
+  const lockKey = `root/${folderName}`;
+
+  // If another call is already creating this folder, wait for it
+  if (folderLocks.has(lockKey)) {
+    console.log(`⏳ Waiting for root folder creation: ${folderName}`);
+    return await folderLocks.get(lockKey);
+  }
+
+  // Create lock
+  const lockPromise = (async () => {
+    try {
+      // Check cache first
+      if (folderCache.has(lockKey)) {
+        console.log(`📦 Using cached root folder ID for ${folderName}`);
+        return folderCache.get(lockKey);
+      }
+
+      // Search for existing root folder
+      console.log(`🔍 Searching for root folder: ${folderName}`);
+      const query = `name='${folderName}' and 'root' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`;
+
+      const searchResponse = await fetch(searchUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const searchData = await searchResponse.json();
+
+      if (searchData.files && searchData.files.length > 0) {
+        // Root folder exists, cache and return it
+        const folderId = searchData.files[0].id;
+        console.log(`✅ Found existing root folder: ${folderName} (${folderId})`);
+        folderCache.set(lockKey, folderId);
+        return folderId;
+      }
+
+      // Create new root folder
+      console.log(`📁 Creating new root folder: ${folderName}`);
+      const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: folderName,
+          mimeType: 'application/vnd.google-apps.folder'
+        })
+      });
+
+      if (!createResponse.ok) {
+        throw new Error(`Failed to create root folder ${folderName}: ${createResponse.status}`);
+      }
+
+      const folderData = await createResponse.json();
+      const folderId = folderData.id;
+      console.log(`📁 Created root folder: ${folderName} (${folderId})`);
+
+      // Cache the new folder ID
+      folderCache.set(lockKey, folderId);
+      return folderId;
+
+    } finally {
+      // Release lock
+      folderLocks.delete(lockKey);
+    }
+  })();
+
+  folderLocks.set(lockKey, lockPromise);
+  return await lockPromise;
+}
+
 // ===== END FOLDER CACHE AND MUTEX =====
 
 
@@ -1761,7 +1840,7 @@ async function downloadAndUploadPdf(item) {
           console.log('🔄 Drive credentials missing, getting fresh ones...');
           try {
             const freshToken = await getGoogleDriveToken();
-            const freshFolderId = await createDriveFolder('Amazon_Invoices_Pending', freshToken);
+            const freshFolderId = await findOrCreateRootFolder('Amazon_Invoices_Pending', freshToken);
 
             // Store fresh credentials
             await chrome.storage.local.set({
@@ -2045,8 +2124,8 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
 
     const driveFolderName = `Amazon_Invoices_Pending`;
     console.log(`📁 Using Drive folder: ${driveFolderName}`);
-    driveFolderId = await createDriveFolder(driveFolderName, driveToken);
-    console.log(`✅ Drive folder created: ${driveFolderId}`);
+    driveFolderId = await findOrCreateRootFolder(driveFolderName, driveToken);
+    console.log(`✅ Drive folder ready: ${driveFolderId}`);
 
     // 🆕 Store tokens in storage for reuse by downloadAndUploadPdf function
     await chrome.storage.local.set({
@@ -2296,9 +2375,9 @@ async function uploadSessionToGoogleDrive(sessionPath, metadata) {
     // Get OAuth token for Google Drive
     const token = await getGoogleDriveToken();
 
-    // Create folder structure in Drive
-    const driveFolderName = `Amazon_Invoices_Pending/${sessionPath.replace(/\//g, '_')}`;
-    const folderId = await createDriveFolder(driveFolderName, token);
+    // Create folder structure in Drive: Amazon_Invoices_Pending -> session folder
+    const rootFolderId = await findOrCreateRootFolder('Amazon_Invoices_Pending', token);
+    const sessionFolderId = await findOrCreateDriveFolder(sessionPath, rootFolderId, token);
 
     // Get downloaded items from metadata
     const downloadedItems = metadata.downloadedItems || [];
@@ -2309,7 +2388,7 @@ async function uploadSessionToGoogleDrive(sessionPath, metadata) {
     for (const item of downloadedItems) {
       if (item.filename && item.downloadUrl) {
         try {
-          await uploadFileFromUrl(item.downloadUrl, item.filename, folderId, token);
+          await uploadFileFromUrl(item.downloadUrl, item.filename, sessionFolderId, token);
           uploadedCount++;
           console.log(`✅ Uploaded ${uploadedCount}/${downloadedItems.length}: ${item.filename}`);
         } catch (fileError) {
@@ -2319,7 +2398,7 @@ async function uploadSessionToGoogleDrive(sessionPath, metadata) {
     }
 
     // Upload summary CSV
-    await uploadSessionSummaryCSV(metadata, folderId, token);
+    await uploadSessionSummaryCSV(metadata, sessionFolderId, token);
 
     console.log('✅ All files uploaded to Google Drive!');
 
