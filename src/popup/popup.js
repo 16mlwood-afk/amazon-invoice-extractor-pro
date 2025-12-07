@@ -15,18 +15,18 @@ function determineAccountingPeriod(startDate, endDate) {
   const startMonth = start.getMonth(); // 0-11
   const endMonth = end.getMonth();
 
-  // Check for accounting quarters
-  if (startMonth === 7 && endMonth === 9) {  // Aug (7) to Oct (9)
-    return 'Q1_Aug_Oct';
+  // Check for accounting quarters (Oct-Oct fiscal year)
+  if (startMonth === 9 && endMonth === 11) {  // Oct (9) to Dec (11)
+    return 'Q1_Oct_Dec';
   }
-  if (startMonth === 10 && endMonth === 0) {  // Nov (10) to Jan (0)
-    return 'Q2_Nov_Jan';
+  if (startMonth === 0 && endMonth === 2) {   // Jan (0) to Mar (2)
+    return 'Q2_Jan_Mar';
   }
-  if (startMonth === 1 && endMonth === 3) {   // Feb (1) to Apr (3)
-    return 'Q3_Feb_Apr';
+  if (startMonth === 3 && endMonth === 5) {   // Apr (3) to Jun (5)
+    return 'Q3_Apr_Jun';
   }
-  if (startMonth === 4 && endMonth === 6) {   // May (4) to Jul (6)
-    return 'Q4_May_Jul';
+  if (startMonth === 6 && endMonth === 8) {   // Jul (6) to Sep (8)
+    return 'Q4_Jul_Sep';
   }
 
   // Fall back to custom
@@ -46,28 +46,28 @@ function getAccountingPeriodDates(quarter) {
   let startDate, endDate, rangeType;
 
   switch(quarter) {
-    case 'q1': // Aug-Oct (Q1 of fiscal year starting in selectedYear)
-      startDate = `${selectedYear}-08-01`;
-      endDate = `${selectedYear}-10-31`;
-      rangeType = 'Q1_Aug_Oct';
+    case 'q1': // Oct-Dec (Q1 of fiscal year starting in selectedYear)
+      startDate = `${selectedYear}-10-01`;
+      endDate = `${selectedYear}-12-31`;
+      rangeType = 'Q1_Oct_Dec';
       break;
 
-    case 'q2': // Nov-Jan (Q2 spans year boundary)
-      startDate = `${selectedYear}-11-01`;
-      endDate = `${selectedYear + 1}-01-31`;
-      rangeType = 'Q2_Nov_Jan';
+    case 'q2': // Jan-Mar (Q2 of fiscal year)
+      startDate = `${selectedYear + 1}-01-01`;
+      endDate = `${selectedYear + 1}-03-31`;
+      rangeType = 'Q2_Jan_Mar';
       break;
 
-    case 'q3': // Feb-Apr (Q3 of next year in fiscal calendar)
-      startDate = `${selectedYear + 1}-02-01`;
-      endDate = `${selectedYear + 1}-04-30`;
-      rangeType = 'Q3_Feb_Apr';
+    case 'q3': // Apr-Jun (Q3 of fiscal year)
+      startDate = `${selectedYear + 1}-04-01`;
+      endDate = `${selectedYear + 1}-06-30`;
+      rangeType = 'Q3_Apr_Jun';
       break;
 
-    case 'q4': // May-Jul (Q4 of next year in fiscal calendar)
-      startDate = `${selectedYear + 1}-05-01`;
-      endDate = `${selectedYear + 1}-07-31`;
-      rangeType = 'Q4_May_Jul';
+    case 'q4': // Jul-Sep (Q4 of fiscal year)
+      startDate = `${selectedYear + 1}-07-01`;
+      endDate = `${selectedYear + 1}-09-30`;
+      rangeType = 'Q4_Jul_Sep';
       break;
 
     case 'custom':

@@ -222,36 +222,36 @@ class DownloadProcessor {
     const year = date.getFullYear();
     const month = date.getMonth() + 1; // 1-12
 
-    // FISCAL YEAR: Aug-Jul quarters (labeled by END year)
+    // FISCAL YEAR: Oct-Oct quarters (labeled by END year)
     let fiscalYear, quarter, quarterName;
 
-    if (month >= 8 && month <= 10) {
-      // Aug-Sep-Oct = Q1
+    if (month >= 10 && month <= 12) {
+      // Oct-Nov-Dec = Q1
       fiscalYear = year + 1;  // ✅ Ends in next year
       quarter = 'Q1';
-      quarterName = 'Q1_Aug_Oct';
-      console.log(`📅 Aug-Oct ${year} → FY${fiscalYear} Q1`);
+      quarterName = 'Q1_Oct_Dec';
+      console.log(`📅 Oct-Dec ${year} → FY${fiscalYear} Q1`);
 
-    } else if (month >= 11 || month <= 1) {
-      // Nov-Dec-Jan = Q2
-      fiscalYear = month >= 11 ? year + 1 : year;  // ✅ Ends in year (or next if Nov/Dec)
+    } else if (month >= 1 && month <= 3) {
+      // Jan-Feb-Mar = Q2
+      fiscalYear = year + 1;  // ✅ Ends in next year
       quarter = 'Q2';
-      quarterName = 'Q2_Nov_Jan';
-      console.log(`📅 Nov-Jan ${year} → FY${fiscalYear} Q2`);
+      quarterName = 'Q2_Jan_Mar';
+      console.log(`📅 Jan-Mar ${year} → FY${fiscalYear} Q2`);
 
-    } else if (month >= 2 && month <= 4) {
-      // Feb-Mar-Apr = Q3
-      fiscalYear = year;  // ✅ Ends in same year
+    } else if (month >= 4 && month <= 6) {
+      // Apr-May-Jun = Q3
+      fiscalYear = year + 1;  // ✅ Ends in next year
       quarter = 'Q3';
-      quarterName = 'Q3_Feb_Apr';
-      console.log(`📅 Feb-Apr ${year} → FY${fiscalYear} Q3`);
+      quarterName = 'Q3_Apr_Jun';
+      console.log(`📅 Apr-Jun ${year} → FY${fiscalYear} Q3`);
 
     } else {
-      // May-Jun-Jul = Q4
-      fiscalYear = year;  // ✅ Ends in same year
+      // Jul-Aug-Sep = Q4
+      fiscalYear = year + 1;  // ✅ Ends in next year
       quarter = 'Q4';
-      quarterName = 'Q4_May_Jul';
-      console.log(`📅 May-Jul ${year} → FY${fiscalYear} Q4`);
+      quarterName = 'Q4_Jul_Sep';
+      console.log(`📅 Jul-Sep ${year} → FY${fiscalYear} Q4`);
     }
 
     // Build path with fiscal year
