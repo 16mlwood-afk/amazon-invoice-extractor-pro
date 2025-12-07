@@ -104,6 +104,9 @@ function initializeAccountingPeriodSelector(startDateInput, endDateInput) {
   if (yearSelect) {
     yearSelect.addEventListener('change', (event) => {
       console.log('📅 Year changed to:', event.target.value);
+      // Update quarter information display
+      updateQuarterInfoDisplay(event.target.value);
+
       // If a preset button is currently active, recalculate its dates
       const activeButton = document.querySelector('.preset-btn.active');
       console.log('📊 Active button:', activeButton?.dataset?.preset);
@@ -184,6 +187,42 @@ function initializeAccountingPeriodSelector(startDateInput, endDateInput) {
 
   startDateInput.addEventListener('change', updateCustomDateSummary);
   endDateInput.addEventListener('change', updateCustomDateSummary);
+}
+
+/**
+ * Update the quarter information display based on selected year
+ */
+function updateQuarterInfoDisplay(selectedYear) {
+  const year = parseInt(selectedYear);
+
+  // Update fiscal year display
+  const fiscalYearDisplay = document.getElementById('fiscalYearDisplay');
+  if (fiscalYearDisplay) {
+    fiscalYearDisplay.textContent = (year + 1).toString();
+  }
+
+  // Update quarter date ranges
+  const quarters = {
+    q1: { dates: `Aug 1 - Oct 31, ${year}`, fy: `FY${year + 1}` },
+    q2: { dates: `Nov 1, ${year} - Jan 31, ${year + 1}`, fy: `FY${year + 1}` },
+    q3: { dates: `Feb 1 - Apr 30, ${year + 1}`, fy: `FY${year + 1}` },
+    q4: { dates: `May 1 - Jul 31, ${year + 1}`, fy: `FY${year + 1}` }
+  };
+
+  // Update each quarter display
+  Object.keys(quarters).forEach(quarter => {
+    const datesElement = document.getElementById(`${quarter}-dates`);
+    const fyElement = document.querySelector(`[data-quarter="${quarter}"] .quarter-info-fy`);
+
+    if (datesElement) {
+      datesElement.textContent = quarters[quarter].dates;
+    }
+    if (fyElement) {
+      fyElement.textContent = quarters[quarter].fy;
+    }
+  });
+
+  console.log('📅 Updated quarter info display for year:', selectedYear);
 }
 
 function updateDateSummary(startDate, endDate) {
@@ -608,6 +647,10 @@ document.addEventListener('DOMContentLoaded', async function() {
   await loadAccountName();
   await loadAccountNamePreset();
   console.log('✅ Account name and presets loaded');
+
+  // Initialize quarter info display
+  const initialYear = document.getElementById('yearSelect')?.value || '2025';
+  updateQuarterInfoDisplay(initialYear);
 
   // Fiscal year info tooltip
   const fyInfoIcon = document.getElementById('fyInfoIcon');

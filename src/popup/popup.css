@@ -363,6 +363,70 @@ body::before {
     padding-bottom: 0;
   }
 
+  /* Quarter Information Display */
+  .quarter-info-display {
+    margin-bottom: var(--space-lg);
+    padding: var(--space-md);
+    background: rgba(37, 99, 235, 0.03);
+    border: 1px solid rgba(37, 99, 235, 0.1);
+    border-radius: var(--border-radius-md);
+  }
+
+  .quarter-info-header {
+    margin-bottom: var(--space-sm);
+  }
+
+  .quarter-info-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .quarter-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+  }
+
+  .quarter-info-item {
+    padding: var(--space-sm);
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+  }
+
+  .quarter-info-item:hover {
+    background: rgba(255, 255, 255, 0.8);
+    border-color: rgba(37, 99, 235, 0.2);
+  }
+
+  .quarter-info-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+
+  .quarter-info-dates {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-bottom: 2px;
+  }
+
+  .quarter-info-fy {
+    font-size: 10px;
+    color: var(--color-primary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
   .presets {
     display: flex;
     flex-direction: column;
