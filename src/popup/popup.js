@@ -855,18 +855,18 @@ document.addEventListener('DOMContentLoaded', async function() {
 
   if (downloadMoreBtn) {
     downloadMoreBtn.addEventListener('click', function() {
-      window.setUIState(window.UI_STATES.IDLE, { orderCount: window.orderCount });
+      window.setUIState(window.UI_STATES.IDLE); // Removed orderCount parameter
       downloadBtn.disabled = false;
-      getOrderCount();
+      // getOrderCount(); // Commented out - order count removed
     });
   }
 
   const downloadMoreBtnError = document.getElementById('downloadMoreBtnError');
   if (downloadMoreBtnError) {
     downloadMoreBtnError.addEventListener('click', function() {
-      window.setUIState(window.UI_STATES.IDLE, { orderCount: window.orderCount });
+      window.setUIState(window.UI_STATES.IDLE); // Removed orderCount parameter
       downloadBtn.disabled = false;
-      getOrderCount();
+      // getOrderCount(); // Commented out - order count removed
     });
   }
 

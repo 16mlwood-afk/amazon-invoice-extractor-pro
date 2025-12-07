@@ -55,11 +55,8 @@
   };
 
   window.updateIdleState = function(data = {}) {
-    if (data.orderCount !== undefined) {
-      window.setOrderCount(data.orderCount);
-      document.getElementById('orderCount').textContent = data.orderCount;
-      window.showSkeletonLoading(false); // Ensure skeleton is hidden when we have data
-    }
+    // Order count functionality removed - just show skeleton loading state
+    window.showSkeletonLoading(false); // Ensure skeleton is hidden
     window.updateStateIcon(window.UI_STATES.IDLE);
   };
 
