@@ -342,13 +342,77 @@ function getOrderCount() {
   });
 }
 
+// ============================================
+// SETTINGS MANAGEMENT
+// ============================================
+
+/**
+ * Load settings using existing OptionsManager
+ */
+async function loadSettings() {
+  try {
+    const settings = await OptionsManager.loadSettings();
+
+    // Populate UI with settings
+    document.getElementById('downloadMode').value = settings.downloadMode;
+    document.getElementById('errorHandling').value = settings.errorHandling;
+    document.getElementById('includeDigital').checked = settings.includeDigital || true;
+    document.getElementById('concurrent').value = settings.maxConcurrent;
+
+    // Update help text
+    updateDownloadModeHelp(settings.downloadMode);
+
+    console.log('✅ Settings loaded:', settings);
+  } catch (error) {
+    console.error('❌ Error loading settings:', error);
+  }
+}
+
+/**
+ * Save settings using existing OptionsManager
+ */
+async function saveSettings() {
+  try {
+    // Get current settings
+    const settings = await OptionsManager.loadSettings();
+
+    // Update with new values from UI
+    settings.downloadMode = document.getElementById('downloadMode').value;
+    settings.errorHandling = document.getElementById('errorHandling').value;
+    settings.includeDigital = document.getElementById('includeDigital').checked;
+    settings.maxConcurrent = parseInt(document.getElementById('concurrent').value);
+
+    // Save using OptionsManager
+    await OptionsManager.saveSettings(settings);
+
+    console.log('✅ Settings saved');
+  } catch (error) {
+    console.error('❌ Error saving settings:', error);
+  }
+}
+
+/**
+ * Update help text based on download mode
+ */
+function updateDownloadModeHelp(mode) {
+  const helpText = document.getElementById('downloadModeHelp');
+  const messages = {
+    'both': 'Files will be saved locally and uploaded to Drive',
+    'local_only': 'Files will only be saved to your Downloads folder',
+    'drive_only': 'Files will only be uploaded to Google Drive'
+  };
+  helpText.textContent = messages[mode] || messages.both;
+}
 
 // ============================================
 // MAIN INITIALIZATION
 // ============================================
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔄 DOMContentLoaded fired in popup.js');
+
+  // Load settings first
+  await loadSettings();
 
   window.initializePopup();
 
@@ -402,13 +466,23 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize accounting period date selector
   initializeAccountingPeriodSelector(startDateInput, endDateInput);
 
+  // Auto-save on change for new settings
+  document.getElementById('downloadMode').addEventListener('change', async (e) => {
+    updateDownloadModeHelp(e.target.value);
+    await saveSettings();
+  });
+
+  document.getElementById('errorHandling').addEventListener('change', saveSettings);
+  document.getElementById('includeDigital').addEventListener('change', saveSettings);
+  document.getElementById('concurrent').addEventListener('change', saveSettings);
+
   downloadBtn.addEventListener('click', function() {
     console.log('🔵 DOWNLOAD BUTTON CLICKED - Event listener fired');
 
     const startDate = startDateInput.value;
     const endDate = endDateInput.value;
     const accountType = accountTypeSelect ? accountTypeSelect.value : 'nonbusiness';
-    const uploadToDrive = document.getElementById('uploadToDrive').checked;
+    const downloadMode = document.getElementById('downloadMode').value;
 
     console.log('📅 Date range:', startDate, 'to', endDate);
 
@@ -451,6 +525,7 @@ document.addEventListener('DOMContentLoaded', function() {
         endDate: endDate,
         accountType: accountType,
         dateRangeType: dateRangeType,
+        downloadMode: downloadMode,
         timestamp: Date.now(),
         shouldAutoStart: false
       }
@@ -501,7 +576,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             dateRangeType: dateRangeType,  // ← Now uses accounting periods
 
-            uploadToDrive: uploadToDrive
+            downloadMode: downloadMode
 
           });
 
@@ -619,7 +694,7 @@ document.addEventListener('DOMContentLoaded', function() {
       chrome.storage.local.get(['pendingDownload'], function(result) {
         const pendingDownload = result.pendingDownload;
 
-        if (pendingDownload && pendingDownload.uploadToDrive) {
+        if (pendingDownload && (pendingDownload.downloadMode === 'drive_only' || pendingDownload.downloadMode === 'both')) {
           console.log('☁️ Starting Google Drive upload...');
 
           // Send message to background script to upload to Google Drive

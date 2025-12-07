@@ -136,14 +136,27 @@
                   <option value="10">Very Fast (10 at a time)</option>
                 </select>
               </div>
-              <div class="option-group">
-                <label class="option-label">
-                  <input type="checkbox" id="uploadToDrive">
-                  <span>📁 Upload to Google Drive after download</span>
-                </label>
+              <!-- 🆕 NEW: Download Mode Preference -->
+              <div class="option-group preference-group">
+                <label class="option-label">📥 Save invoices to:</label>
+                <select id="downloadMode" class="form-select option-select">
+                  <option value="both">💾 Local + ☁️ Drive (Both)</option>
+                  <option value="local_only">💾 Local downloads only</option>
+                  <option value="drive_only">☁️ Google Drive only</option>
+                </select>
                 <div class="option-description">
-                  <small>Automatically upload completed invoices to Google Drive for accounting workflow</small>
+                  <small id="downloadModeHelp">Files will be saved locally and uploaded to Drive</small>
                 </div>
+              </div>
+
+              <!-- 🆕 NEW: Error Handling -->
+              <div class="option-group">
+                <label class="option-label">If a download fails:</label>
+                <select id="errorHandling" class="form-select option-select">
+                  <option value="skip">⏭️ Skip and continue</option>
+                  <option value="retry">🔄 Retry 3 times</option>
+                  <option value="stop">🛑 Stop all downloads</option>
+                </select>
               </div>
             </div>
           </details>
@@ -269,6 +282,7 @@
   </div>
 
   <!-- Load modular JavaScript components -->
+  <script src="../utils/OptionsManager.js"></script>
   <script src="modules/state-management.js"></script>
   <script src="modules/ui-helpers.js"></script>
   <script src="modules/state-transitions.js"></script>

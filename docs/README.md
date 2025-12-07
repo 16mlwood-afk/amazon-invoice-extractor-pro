@@ -124,6 +124,38 @@
    - File organization templates
    - Advanced queue management settings
 
+## Download Modes
+
+The extension supports three different storage destinations to fit your workflow needs:
+
+### 💾 Local Downloads Only
+
+- **Files saved to**: `Downloads/Amazon-DE/Session_XXX/YYYY-MM_Month/`
+- **Best for**: Privacy, offline access, no cloud needed
+- **Setup**: No authentication required
+- **Use case**: Personal use, local accounting software, maximum privacy
+
+### ☁️ Google Drive Only
+
+- **Files saved to**: `Google Drive/Amazon_Invoices/Amazon-DE/Session_XXX/YYYY-MM_Month/`
+- **Best for**: Accounting workflows, team sharing, automatic backup
+- **Setup**: Requires Google account authorization (one-time OAuth)
+- **Use case**: Professional accounting, shared team access, cloud backup
+
+### 💾 + ☁️ Both (Default)
+
+- **Files saved to both locations** simultaneously
+- **Best for**: Maximum redundancy, backup strategy
+- **Setup**: Google account authorization recommended
+- **Use case**: Critical business documents, maximum data safety, hybrid workflows
+
+### Choosing Your Mode
+
+- **Privacy First**: Use Local Only mode
+- **Collaboration**: Use Drive Only mode for team access
+- **Maximum Safety**: Use Both mode for critical documents
+- **Switch anytime**: Change modes in extension settings without losing data
+
 ## Supported Amazon Domains
 
 - Amazon US: `amazon.com`

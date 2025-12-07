@@ -5,6 +5,9 @@ importScripts('state/DownloadStateManager.js');
 importScripts('utils/ContentScriptManager.js');
 importScripts('utils/DownloadProcessor.js');
 
+// Import OptionsManager
+importScripts('utils/OptionsManager.js');
+
 // ===== INTERNAL BUILD: AUTO-ACTIVATION =====
 
 const INTERNAL_LICENSE = 'INTERNAL-BUILD-2024';
@@ -1606,6 +1609,333 @@ async function injectContentScripts(tabId, url) {
 }
 */
 
+/**
+ * Download PDF and optionally upload to Google Drive based on settings
+ */
+async function downloadAndUploadPdf(item) {
+  // Use OptionsManager helper methods
+  const shouldDownloadLocal = await OptionsManager.shouldDownloadLocally();
+  const shouldUploadDrive = await OptionsManager.shouldUploadToDrive();
+
+  // Log disabled preferences for clarity
+  if (!shouldDownloadLocal) {
+    console.log(`⏭️ Local download disabled (user preference)`);
+  }
+
+  if (!shouldUploadDrive) {
+    console.log(`⏭️ Drive upload disabled (user preference)`);
+  }
+
+  const results = {
+    local: null,
+    drive: null,
+    errors: []
+  };
+
+  try {
+    // Fetch the PDF blob
+    const response = await fetch(item.pdfUrl);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const blob = await response.blob();
+    console.log(`✅ Fetched blob: ${blob.size} bytes for ${item.filename}`);
+
+    // LOCAL DOWNLOAD (if enabled)
+    if (shouldDownloadLocal) {
+      console.log(`📥 Local download enabled - downloading ${item.filename}...`);
+      try {
+        results.local = await downloadLocally(blob, item.filename, item.folderPath);
+        console.log(`✅ Local: ${item.filename}`);
+      } catch (error) {
+        console.error(`❌ Local download failed: ${item.filename}`, error);
+        results.errors.push({ type: 'local', error });
+      }
+    }
+
+    // DRIVE UPLOAD (if enabled)
+    if (shouldUploadDrive) {
+      console.log(`☁️ Drive upload enabled - uploading ${item.filename}...`);
+      try {
+        // Get drive credentials from storage
+        let driveData = await new Promise((resolve) => {
+          chrome.storage.local.get(['driveFolderId', 'driveToken'], resolve);
+        });
+
+        // If credentials are missing, try to get them fresh
+        if (!driveData.driveFolderId || !driveData.driveToken) {
+          console.log('🔄 Drive credentials missing, getting fresh ones...');
+          try {
+            const freshToken = await getGoogleDriveToken();
+            const freshFolderId = await createDriveFolder('Amazon_Invoices_Pending', freshToken);
+
+            // Store fresh credentials
+            await chrome.storage.local.set({
+              driveToken: freshToken,
+              driveFolderId: freshFolderId
+            });
+
+            driveData = { driveToken: freshToken, driveFolderId: freshFolderId };
+            console.log('💾 Fresh Drive credentials stored');
+          } catch (authError) {
+            console.error('❌ Failed to get fresh Drive credentials:', authError);
+            throw new Error('Google Drive authentication required');
+          }
+        }
+
+        results.drive = await uploadToDrive(blob, item, driveData.driveFolderId, driveData.driveToken);
+        console.log(`☁️ Drive: ${item.filename}`);
+      } catch (error) {
+        console.error(`❌ Drive upload failed: ${item.filename}`, error);
+        results.errors.push({ type: 'drive', error });
+      }
+    }
+
+    // Handle no storage method selected
+    if (!shouldDownloadLocal && !shouldUploadDrive) {
+      throw new Error('No storage method selected');
+    }
+
+    return results;
+
+  } catch (error) {
+    console.error(`❌ Failed: ${item.filename}`, error);
+    results.errors.push({ type: 'fetch', error });
+
+    // Use OptionsManager for error handling
+    const errorHandling = await OptionsManager.getErrorHandling();
+
+    if (errorHandling.strategy === 'stop') {
+      throw error;
+    } else if (errorHandling.strategy === 'retry') {
+      return await retryDownload(item, errorHandling.retryAttempts);
+    }
+
+    return results; // skip
+  }
+}
+
+/**
+ * Download blob locally using chrome.downloads API
+ * Fixes the URL.createObjectURL error for Service Workers
+ */
+async function downloadLocally(blob, filename, folderPath = '') {
+  try {
+    // Convert blob to data URL (Service Worker compatible)
+    const dataUrl = await blobToDataUrl(blob);
+
+    // Extract folder path from full path if it includes filename
+    let downloadFilename = filename;
+    if (folderPath && folderPath.includes('/')) {
+      // Remove filename from end of path to get just the folder path
+      const pathParts = folderPath.split('/').filter(part => part.length > 0);
+      if (pathParts.length > 0 && pathParts[pathParts.length - 1] === filename) {
+        pathParts.pop(); // Remove filename
+      }
+      const folderOnly = pathParts.join('/');
+      if (folderOnly) {
+        downloadFilename = `${folderOnly}/${filename}`;
+      }
+    }
+
+    // Use chrome.downloads API with folder structure
+    const downloadId = await chrome.downloads.download({
+      url: dataUrl,
+      filename: downloadFilename,
+      saveAs: false,
+      conflictAction: 'uniquify'
+    });
+
+    console.log(`📥 Local download started: ${downloadId} -> ${downloadFilename}`);
+    return downloadId;
+
+  } catch (error) {
+    console.error(`❌ Local download error:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Convert blob to data URL (Service Worker compatible)
+ */
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Failed to read blob'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Retry logic for failed downloads
+ */
+async function retryDownload(item, maxAttempts) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      console.log(`🔄 Retry ${attempt}/${maxAttempts}: ${item.filename}`);
+
+      // Exponential backoff
+      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+
+      return await downloadAndUploadPdf(item);
+
+    } catch (error) {
+      lastError = error;
+      console.warn(`⚠️ Attempt ${attempt} failed:`, error.message);
+    }
+  }
+
+  throw lastError;
+}
+
+/**
+ * Upload blob to Google Drive with folder structure
+ */
+async function uploadToDrive(blob, item, driveFolderId, token) {
+  try {
+    // Extract folder path from item's folderPath
+    const folderPath = item.folderPath || '';
+    const pathParts = folderPath.split('/').filter(part => part.length > 0);
+
+    // Remove filename from path parts if it's included
+    if (pathParts.length > 0 && pathParts[pathParts.length - 1] === item.filename) {
+      pathParts.pop();
+    }
+
+    const nestedPath = pathParts.join('/');
+    const justFilename = item.filename;
+
+    // Create nested folder structure
+    const finalFolderId = await createNestedDriveFolders(nestedPath, driveFolderId, token);
+
+    // Upload file to the deepest folder
+    const result = await uploadBlobToDrive(blob, justFilename, finalFolderId, token);
+    console.log(`☁️ Uploaded to Drive: ${nestedPath}/${justFilename}`);
+
+    return result;
+  } catch (error) {
+    console.error(`❌ Drive upload error:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Create nested folder structure in Google Drive
+ * @param {string} folderPath - Path like "Amazon-DE/Session_001/2025-07_July"
+ * @param {string} rootFolderId - Parent folder ID
+ * @param {string} token - OAuth token
+ * @returns {Promise<string>} - Final folder ID
+ */
+async function createNestedDriveFolders(folderPath, rootFolderId, token) {
+  const pathParts = folderPath.split('/').filter(part => part.length > 0);
+  let currentParentId = rootFolderId;
+
+  for (const folderName of pathParts) {
+    // Check if folder already exists
+    const query = `name='${folderName}' and '${currentParentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`;
+
+    console.log(`🔍 Searching for folder: ${folderName} in parent: ${currentParentId}`);
+
+    const searchResponse = await fetch(searchUrl, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const searchData = await searchResponse.json();
+
+    if (searchData.files && searchData.files.length > 0) {
+      // Folder exists, use it
+      currentParentId = searchData.files[0].id;
+      console.log(`📁 Folder exists: ${folderName} (${currentParentId})`);
+    } else {
+      // Create new folder
+      const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: folderName,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [currentParentId]
+        })
+      });
+
+      if (!createResponse.ok) {
+        throw new Error(`Failed to create folder ${folderName}: ${createResponse.status}`);
+      }
+
+      const folderData = await createResponse.json();
+      currentParentId = folderData.id;
+      console.log(`📁 Created folder: ${folderName} (${currentParentId})`);
+    }
+  }
+
+  return currentParentId;
+}
+
+/**
+ * Upload blob directly to Google Drive
+ */
+async function uploadBlobToDrive(blob, filename, folderId, token) {
+  const metadata = {
+    name: filename,
+    parents: [folderId]
+  };
+
+  const formData = new FormData();
+  formData.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+  formData.append('file', blob);
+
+  const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Drive upload failed: ${response.status} - ${error}`);
+  }
+
+  return response.json();
+}
+
+/**
+ * Wait for Chrome download to complete
+ */
+async function waitForDownloadComplete(downloadId) {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      chrome.downloads.onChanged.removeListener(listener);
+      reject(new Error('Download timeout'));
+    }, 30000);
+
+    function listener(delta) {
+      if (delta.id === downloadId && delta.state) {
+        if (delta.state.current === 'complete') {
+          clearTimeout(timeout);
+          chrome.downloads.onChanged.removeListener(listener);
+          resolve();
+        } else if (delta.state.current === 'interrupted') {
+          clearTimeout(timeout);
+          chrome.downloads.onChanged.removeListener(listener);
+          reject(new Error('Download interrupted'));
+        }
+      }
+    }
+
+    chrome.downloads.onChanged.addListener(listener);
+  });
+}
+
 async function processDownloads(downloadItems, marketplace, concurrent, startDate, endDate, dateRangeType) {
   const startTime = Date.now();
   console.log(`📦 PROCESS DOWNLOADS FUNCTION CALLED - Processing ${downloadItems.length} downloads`);
@@ -1634,6 +1964,45 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
 
   let completed = 0;
   const failedDownloads = [];
+  const downloadedItems = [];
+
+  // Get Google Drive token and create folder BEFORE downloading
+  let driveToken = null;
+  let driveFolderId = null;
+
+  try {
+    console.log('🔑 Getting Google Drive token...');
+    driveToken = await getGoogleDriveToken();
+    console.log('✅ Got Drive token');
+
+    // Build session folder path (same logic as DownloadProcessor.buildFolderPath)
+    const baseFolder = `Amazon-${marketplace}`;
+    const sessionPrefix = `Session_${String(sessionNum).padStart(3, '0')}`;
+    let dateRangeStr;
+    if (startDate && endDate && dateRangeType) {
+      dateRangeStr = `${startDate}_to_${endDate}_${dateRangeType}`;
+    } else {
+      const today = new Date().toISOString().split('T')[0];
+      dateRangeStr = `Unknown_Range_${today}`;
+    }
+    const sessionFolderPath = `${baseFolder}/${sessionPrefix}_${dateRangeStr}`;
+
+    const driveFolderName = `Amazon_Invoices_Pending`;
+    console.log(`📁 Using Drive folder: ${driveFolderName}`);
+    driveFolderId = await createDriveFolder(driveFolderName, driveToken);
+    console.log(`✅ Drive folder created: ${driveFolderId}`);
+
+    // 🆕 Store tokens in storage for reuse by downloadAndUploadPdf function
+    await chrome.storage.local.set({
+      driveToken: driveToken,
+      driveFolderId: driveFolderId
+    });
+    console.log('💾 Drive credentials stored in local storage');
+  } catch (error) {
+    console.warn('⚠️ Google Drive setup failed, will only save locally:', error);
+    // Clear any stale credentials if setup failed
+    await chrome.storage.local.remove(['driveToken', 'driveFolderId']);
+  }
 
   // Process with concurrency limit
   for (let i = 0; i < downloadItems.length; i += concurrent) {
@@ -1722,7 +2091,7 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
         }
 
         // Build folder path with monthly subfolder
-        const folderPath = downloadProcessor.buildFolderPath(
+        const folderPath = await downloadProcessor.buildFolderPath(
           marketplace,
           startDate,
           endDate,
@@ -1732,42 +2101,40 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
         );
         const filename = `${folderPath}/${item.filename}`;
 
-        // Download using finalPdfUrl (may have been extracted from invoice page)
-        await new Promise((resolve, reject) => {
-          chrome.downloads.download({
-            url: finalPdfUrl,
-            filename: filename,
-            saveAs: false
-          }, (downloadId) => {
-            if (chrome.runtime.lastError) {
-              console.error('❌ Download failed:', item.filename, chrome.runtime.lastError);
-              failedDownloads.push({
-                filename: item.filename,
-                orderId: item.orderId,
-                error: chrome.runtime.lastError.message
-              });
-              reject(chrome.runtime.lastError);
-            } else {
-              console.log('✅ Success:', item.filename, 'ID:', downloadId);
-              completed++;
-
-              // Update state
-              downloadStateManager.updateProgress(
-                completed + failedDownloads.length,
-                downloadStateManager.getDownloadState().total,
-                completed,
-                failedDownloads.length
-              );
-
-              // Track download
-              trackDownload(downloadId, item.orderId, filename,
-                metadataManager.createMetadata(item, { downloadId }));
-
-              resolve();
-            }
+        // Download and upload simultaneously
+        try {
+          const result = await downloadAndUploadPdf({
+            pdfUrl: finalPdfUrl,
+            filename: item.filename,
+            folderPath: filename,
+            ...item // Include other item properties
           });
-        }).catch((error) => {
-          console.error('❌ Download error:', item.filename, error);
+
+          console.log('✅ Success:', item.filename, 'ID:', result.downloadId);
+          completed++;
+
+          // Update state
+          downloadStateManager.updateProgress(
+            completed + failedDownloads.length,
+            downloadStateManager.getDownloadState().total,
+            completed,
+            failedDownloads.length
+          );
+
+          // Add to downloaded items
+          downloadedItems.push({
+            ...item,
+            downloadId: result.downloadId,
+            downloadTime: new Date().toISOString(),
+            localPath: filename
+          });
+
+          // Track download
+          trackDownload(result.downloadId, item.orderId, filename,
+            metadataManager.createMetadata(item, { downloadId: result.downloadId }));
+
+        } catch (error) {
+          console.error('❌ Download failed:', item.filename, error);
           failedDownloads.push({
             filename: item.filename,
             orderId: item.orderId,
@@ -1780,7 +2147,7 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
             completed,
             failedDownloads.length
           );
-        });
+        }
 
       } catch (error) {
         console.error('❌ Item processing error:', item.filename, error);
@@ -1807,53 +2174,7 @@ async function processDownloads(downloadItems, marketplace, concurrent, startDat
 
   console.log(`📊 Final: ${completed} successful, ${failedDownloads.length} failed`);
 
-  // 🆕 AUTO-UPLOAD TO GOOGLE DRIVE
-  if (completed > 0) {
-    console.log('☁️ Starting Google Drive upload...');
-
-    const sessionMetadata = {
-      sessionNumber: sessionNum,
-      marketplace: marketplace,
-      startDate: startDate,
-      endDate: endDate,
-      rangeType: dateRangeType,
-      totalInvoices: completed,
-      downloadedItems: downloadItems,
-      downloadTime: new Date().toISOString()
-    };
-
-    try {
-      // Build session folder path (same logic as DownloadProcessor.buildFolderPath)
-      const baseFolder = `Amazon-${marketplace}`;
-      const sessionPrefix = `Session_${String(sessionNum).padStart(3, '0')}`;
-      let dateRangeStr;
-      if (startDate && endDate && dateRangeType) {
-        dateRangeStr = `${startDate}_to_${endDate}_${dateRangeType}`;
-      } else {
-        const today = new Date().toISOString().split('T')[0];
-        dateRangeStr = `Unknown_Range_${today}`;
-      }
-      const sessionFolderPath = `${baseFolder}/${sessionPrefix}_${dateRangeStr}`;
-
-      await uploadSessionToGoogleDrive(sessionFolderPath, sessionMetadata);
-
-      // Send message to popup
-      chrome.runtime.sendMessage({
-        action: 'uploadComplete',
-        success: true,
-        message: `Uploaded ${completed} invoices to Google Drive`
-      }).catch(() => {});
-
-    } catch (error) {
-      console.error('❌ Upload failed:', error);
-
-      chrome.runtime.sendMessage({
-        action: 'uploadComplete',
-        success: false,
-        message: 'Upload failed - files saved locally'
-      }).catch(() => {});
-    }
-  }
+  console.log('✅ All downloads and uploads completed!');
 
   // 🆕 SEND COMPLETION MESSAGE
   chrome.runtime.sendMessage({

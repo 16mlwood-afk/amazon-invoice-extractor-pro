@@ -2,44 +2,22 @@
 // OPTIONS PAGE MANAGEMENT
 // ============================================
 
-class OptionsManager {
+// Import OptionsManager from utils
+importScripts('../utils/OptionsManager.js');
+
+// OptionsPageManager class for UI management
+class OptionsPageManager {
   constructor() {
+    // Skip initialization in service worker context
+    if (typeof document === 'undefined' || !document.addEventListener) {
+      console.log('⚠️ OptionsPageManager: Skipping DOM initialization (service worker context)');
+      return;
+    }
+
     this.currentSection = 'general';
     this.saveTimeout = null;
-    this.defaultSettings = this.getDefaultSettings();
+    this.defaultSettings = OptionsManager.getDefaultSettings();
     this.init();
-  }
-
-  // Default settings configuration
-  getDefaultSettings() {
-    return {
-      // General Settings
-      showNotifications: true,
-      autoOpenFolder: false,
-      soundNotifications: false,
-      accountType: 'auto',
-
-      // Download Settings
-      maxConcurrent: 3,
-      downloadDelay: 1000,
-      paginationDelay: 1500,
-      skipDuplicates: true,
-      retryFailed: true,
-      maxRetries: 3,
-
-      // Organization Settings
-      folderStructure: 'by-year-month',
-      baseFolder: 'Amazon_Invoices',
-      filenameFormat: 'default',
-
-      // Advanced Settings
-      adaptiveBandwidth: true,
-      bandwidthLimit: 0,
-      saveMetadata: true,
-      trackHistory: true,
-      verboseLogging: false,
-      debugMode: false
-    };
   }
 
   // Initialize the options page
@@ -127,13 +105,9 @@ class OptionsManager {
   }
 
   // Load settings from chrome storage
-  loadSettings() {
-    chrome.storage.local.get(this.defaultSettings, (data) => {
-      if (chrome.runtime.lastError) {
-        console.error('Error loading settings:', chrome.runtime.lastError);
-        this.showStatus('Error loading settings', 'error');
-        return;
-      }
+  async loadSettings() {
+    try {
+      const data = await OptionsManager.loadSettings();
 
       // Apply settings to form
       Object.keys(data).forEach(key => {
@@ -156,7 +130,10 @@ class OptionsManager {
       // Update UI elements that depend on settings
       this.updatePreviews();
       this.showStatus('Settings loaded', 'success', 2000);
-    });
+    } catch (error) {
+      console.error('Error loading settings:', error);
+      this.showStatus('Error loading settings', 'error');
+    }
   }
 
   // Save settings to chrome storage
@@ -402,18 +379,21 @@ class OptionsManager {
     };
     reader.readAsText(file);
   }
+
 }
 
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-  new OptionsManager();
-});
+// Initialize when DOM is ready (only if DOM is available)
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('DOMContentLoaded', () => {
+    new OptionsPageManager();
+  });
 
-// Handle keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-  // Ctrl+S to save settings
-  if (e.ctrlKey && e.key === 's') {
-    e.preventDefault();
-    document.getElementById('saveSettingsBtn').click();
-  }
-});
+  // Handle keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Ctrl+S to save settings
+    if (e.ctrlKey && e.key === 's') {
+      e.preventDefault();
+      document.getElementById('saveSettingsBtn').click();
+    }
+  });
+}

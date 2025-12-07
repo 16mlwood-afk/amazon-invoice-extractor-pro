@@ -197,9 +197,9 @@ class DownloadProcessor {
    * @param {string} rangeType - 'Q1_Aug_Oct', 'Q2_Nov_Jan', etc.
    * @param {number} sessionNum - The session number for this download batch
    * @param {string} invoiceDate - ISO date string for this specific invoice (YYYY-MM-DD)
-   * @returns {string} The folder path with monthly subfolder
+   * @returns {Promise<string>} The folder path with monthly subfolder
    */
-  buildFolderPath(marketplace, startDate, endDate, rangeType, sessionNum, invoiceDate) {
+  async buildFolderPath(marketplace, startDate, endDate, rangeType, sessionNum, invoiceDate) {
     console.log('📁 Building folder path with params:', {
       marketplace,
       startDate,
@@ -209,7 +209,18 @@ class DownloadProcessor {
       invoiceDate
     });
 
-    const baseFolder = `Amazon-${marketplace}`;
+    // Get base folder from settings (default: 'Amazon_Invoices')
+    let baseFolderName = 'Amazon_Invoices';
+    try {
+      const settings = await OptionsManager.loadSettings();
+      if (settings.baseFolder) {
+        baseFolderName = settings.baseFolder;
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not load baseFolder setting, using default:', error);
+    }
+
+    const marketplaceFolder = `Amazon-${marketplace}`;
 
     // Format session number (e.g., "Session_001")
     const sessionPrefix = `Session_${String(sessionNum).padStart(3, '0')}`;
@@ -225,7 +236,7 @@ class DownloadProcessor {
     }
 
     // Session folder: Amazon-DE/Session_001_2025-08-01_to_2025-10-31_Q1_Aug_Oct
-    const sessionFolder = `${baseFolder}/${sessionPrefix}_${dateRangeStr}`;
+    const sessionFolder = `${marketplaceFolder}/${sessionPrefix}_${dateRangeStr}`;
 
     // Extract month subfolder from invoice date
     let monthSubfolder = '';
@@ -247,8 +258,8 @@ class DownloadProcessor {
       monthSubfolder = '';
     }
 
-    // Final path: Amazon-DE/Session_001_2025-08-01_to_2025-10-31_Q1_Aug_Oct/2025-08_August
-    const folderPath = `${sessionFolder}${monthSubfolder}`;
+    // Final path: Amazon_Invoices/Amazon-DE/Session_001_2025-08-01_to_2025-10-31_Q1_Aug_Oct/2025-08_August
+    const folderPath = `${baseFolderName}/${sessionFolder}${monthSubfolder}`;
 
     console.log('📁 Final folder path:', folderPath);
     return folderPath;
