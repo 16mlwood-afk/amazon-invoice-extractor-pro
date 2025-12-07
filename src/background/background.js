@@ -58,6 +58,99 @@ let downloadState = {
 
 
 
+// ===== FOLDER CACHE AND MUTEX FOR DRIVE OPERATIONS =====
+
+// Cache folder IDs to avoid repeated searches: "parentId/folderName" -> folderId
+const folderCache = new Map();
+
+// Mutex locks to prevent race conditions: "parentId/folderName" -> Promise
+const folderLocks = new Map();
+
+/**
+ * Find or create a single folder in Google Drive with caching and mutex locks
+ * @param {string} folderName - Name of the folder to find/create
+ * @param {string} parentId - Parent folder ID
+ * @param {string} token - OAuth token
+ * @returns {Promise<string>} - Folder ID
+ */
+async function findOrCreateDriveFolder(folderName, parentId, token) {
+  const lockKey = `${parentId}/${folderName}`;
+
+  // If another call is already creating this folder, wait for it
+  if (folderLocks.has(lockKey)) {
+    console.log(`⏳ Waiting for folder creation: ${folderName}`);
+    return await folderLocks.get(lockKey);
+  }
+
+  // Create lock
+  const lockPromise = (async () => {
+    try {
+      // Check cache first
+      if (folderCache.has(lockKey)) {
+        console.log(`📦 Using cached folder ID for ${folderName}`);
+        return folderCache.get(lockKey);
+      }
+
+      // Search for existing folder
+      console.log(`🔍 Searching for folder: ${folderName} in parent: ${parentId}`);
+      const query = `name='${folderName}' and '${parentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+      const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`;
+
+      const searchResponse = await fetch(searchUrl, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const searchData = await searchResponse.json();
+
+      if (searchData.files && searchData.files.length > 0) {
+        // Folder exists, cache and return it
+        const folderId = searchData.files[0].id;
+        console.log(`✅ Found existing folder: ${folderName} (${folderId})`);
+        folderCache.set(lockKey, folderId);
+        return folderId;
+      }
+
+      // Create new folder
+      console.log(`📁 Creating new folder: ${folderName}`);
+      const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          name: folderName,
+          mimeType: 'application/vnd.google-apps.folder',
+          parents: [parentId]
+        })
+      });
+
+      if (!createResponse.ok) {
+        throw new Error(`Failed to create folder ${folderName}: ${createResponse.status}`);
+      }
+
+      const folderData = await createResponse.json();
+      const folderId = folderData.id;
+      console.log(`📁 Created folder: ${folderName} (${folderId})`);
+
+      // Cache the new folder ID
+      folderCache.set(lockKey, folderId);
+      return folderId;
+
+    } finally {
+      // Release lock
+      folderLocks.delete(lockKey);
+    }
+  })();
+
+  folderLocks.set(lockKey, lockPromise);
+  return await lockPromise;
+}
+
+// ===== END FOLDER CACHE AND MUTEX =====
+
+
+
 // ===== TAB STATE MONITORING =====
 // Monitor tab changes and notify popup of content script state changes
 chrome.tabs.onActivated.addListener(async (activeInfo) => {
@@ -1835,45 +1928,8 @@ async function createNestedDriveFolders(folderPath, rootFolderId, token) {
   let currentParentId = rootFolderId;
 
   for (const folderName of pathParts) {
-    // Check if folder already exists
-    const query = `name='${folderName}' and '${currentParentId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
-    const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(query)}`;
-
-    console.log(`🔍 Searching for folder: ${folderName} in parent: ${currentParentId}`);
-
-    const searchResponse = await fetch(searchUrl, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-
-    const searchData = await searchResponse.json();
-
-    if (searchData.files && searchData.files.length > 0) {
-      // Folder exists, use it
-      currentParentId = searchData.files[0].id;
-      console.log(`📁 Folder exists: ${folderName} (${currentParentId})`);
-    } else {
-      // Create new folder
-      const createResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          name: folderName,
-          mimeType: 'application/vnd.google-apps.folder',
-          parents: [currentParentId]
-        })
-      });
-
-      if (!createResponse.ok) {
-        throw new Error(`Failed to create folder ${folderName}: ${createResponse.status}`);
-      }
-
-      const folderData = await createResponse.json();
-      currentParentId = folderData.id;
-      console.log(`📁 Created folder: ${folderName} (${currentParentId})`);
-    }
+    // Use the new thread-safe folder creation function
+    currentParentId = await findOrCreateDriveFolder(folderName, currentParentId, token);
   }
 
   return currentParentId;
