@@ -100,11 +100,12 @@
      DATE SELECTOR
      ============================================ */
   .date-selector {
-    margin-bottom: var(--space-lg);
-    padding: var(--space-md);
+    margin-bottom: var(--space-xl);
+    padding: var(--space-lg);
     background: var(--bg-secondary);
-    border-radius: var(--border-radius-md);
+    border-radius: var(--border-radius-lg);
     border: 1px solid var(--border-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
   .date-selector label {
@@ -152,8 +153,8 @@
   }
 
   .date-selector-section {
-    margin-bottom: 16px;
-    padding-bottom: 12px;
+    margin-bottom: var(--space-lg);
+    padding-bottom: var(--space-md);
     border-bottom: 1px solid var(--border-color);
   }
 
@@ -166,8 +167,8 @@
   .presets {
     display: flex;
     flex-direction: column;
-    gap: var(--space-md);
-    margin-bottom: var(--space-md);
+    gap: var(--space-lg);
+    margin-bottom: var(--space-lg);
   }
 
   .preset-group {

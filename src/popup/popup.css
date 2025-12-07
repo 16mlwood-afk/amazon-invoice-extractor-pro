@@ -984,7 +984,7 @@
     }
     
     .container {
-      padding: var(--space-md);
+      padding: var(--space-lg);
     }
     
     .date-range-group {
@@ -1557,9 +1557,11 @@
 /* FOOTER */
 .footer {
   text-align: center;
-  padding: var(--space-md) 0;
+  padding: var(--space-lg) 0 var(--space-md) 0;
   border-top: 1px solid var(--border-color);
-  margin-top: var(--space-lg);
+  margin-top: var(--space-xl);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
 }
 
 .footer a {
@@ -1643,31 +1645,35 @@
 
 /* Account Settings Styles */
 .settings-section.account-settings {
-  margin: 15px 0;
-  padding: 15px;
+  margin: var(--space-lg) 0 var(--space-xl) 0;
+  padding: var(--space-lg);
   background: #f5f5f5;
-  border-radius: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .settings-section.account-settings .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 12px;
+  margin-bottom: var(--space-lg);
 }
 
 .settings-section.account-settings h3 {
   margin: 0;
-  font-size: 14px;
-  color: #333;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: -0.01em;
 }
 
 .settings-section.account-settings .account-display {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) 0;
 }
 
 .settings-section.account-settings .account-info {
@@ -1676,29 +1682,39 @@
 
 .settings-section.account-settings .account-info label {
   display: block;
-  font-size: 12px;
-  color: #666;
-  margin-bottom: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4a5568;
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
 }
 
 .settings-section.account-settings .account-name-display {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
 }
 
 .settings-section.account-settings .account-name-display strong {
-  font-size: 14px;
-  color: #333;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  letter-spacing: -0.005em;
 }
 
 .settings-section.account-settings .account-type-selector {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  gap: var(--space-lg);
+  margin-bottom: var(--space-md);
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  margin-left: calc(var(--space-lg) * -1);
+  margin-right: calc(var(--space-lg) * -1);
+  padding-left: var(--space-lg);
+  padding-right: var(--space-lg);
 }
 
 .settings-section.account-settings .account-type-selector label {
@@ -1710,7 +1726,7 @@
   text-transform: uppercase;
   min-width: fit-content;
   position: relative;
-  padding-right: 8px;
+  padding-right: var(--space-sm);
 }
 
 .settings-section.account-settings .account-type-selector label::after {
@@ -1723,7 +1739,8 @@
   height: 4px;
   background: var(--color-primary);
   border-radius: 50%;
-  opacity: 0.7;
+  opacity: 0.8;
+  box-shadow: 0 0 6px rgba(37, 99, 235, 0.3);
 }
 
 .settings-section.account-settings .account-type-select {
@@ -1833,14 +1850,27 @@
   background: #5a6268;
 }
 
+/* Help Text */
+.help-text {
+  margin: var(--space-md) 0 0 0;
+  padding: var(--space-sm) var(--space-md);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+  background: rgba(37, 99, 235, 0.05);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 4px 4px 0;
+  font-style: italic;
+}
+
 /* Info Icon */
 .info-icon {
   display: inline-block;
   cursor: pointer;
   font-size: 16px;
-  margin-left: 8px;
+  margin-left: var(--space-sm);
   opacity: 0.7;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-fast);
 }
 
 .info-icon:hover {
