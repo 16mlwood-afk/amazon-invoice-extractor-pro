@@ -188,22 +188,16 @@ class DownloadProcessor {
   }
 
   /**
-   * Build the folder path for downloads with monthly subfolders
-   * @param {string} marketplace - The marketplace code
-   * @param {string} startDate - ISO date string (YYYY-MM-DD)
-   * @param {string} endDate - ISO date string (YYYY-MM-DD)
-   * @param {string} rangeType - 'Q1_Aug_Oct', 'Q2_Nov_Jan', etc.
-   * @param {number} sessionNum - The session number for this download batch
-   * @param {string} invoiceDate - ISO date string for this specific invoice (YYYY-MM-DD)
-   * @returns {Promise<string>} The folder path with monthly subfolder
+   * Build the folder path for downloads
+   * NEW STRUCTURE: Account/Year/Quarter/Marketplace
+   *
+   * @param {string} marketplace - The marketplace code (DE, FR, UK, etc.)
+   * @param {string} invoiceDate - ISO date string for this invoice (YYYY-MM-DD)
+   * @returns {Promise<string>} The folder path
    */
-  async buildFolderPath(marketplace, startDate, endDate, rangeType, sessionNum, invoiceDate) {
+  async buildFolderPath(marketplace, invoiceDate) {
     console.log('📁 Building folder path with params:', {
       marketplace,
-      startDate,
-      endDate,
-      rangeType,
-      sessionNum,
       invoiceDate
     });
 
@@ -218,46 +212,56 @@ class DownloadProcessor {
       console.warn('⚠️ Could not load baseFolder setting, using default:', error);
     }
 
-    const marketplaceFolder = `Amazon-${marketplace}`;
+    // Get account identifier for this Chrome profile
+    const profileManager = new ProfileManager();
+    const accountId = await profileManager.getAccountIdentifier();
+    console.log('👤 Account identifier:', accountId);
 
-    // Format session number (e.g., "Session_001")
-    const sessionPrefix = `Session_${String(sessionNum).padStart(3, '0')}`;
+    // Parse invoice date
+    const date = new Date(invoiceDate);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // 1-12
 
-    // Build date range string
-    let dateRangeStr;
-    if (startDate && endDate && rangeType) {
-      dateRangeStr = `${startDate}_to_${endDate}_${rangeType}`;
+    // FISCAL YEAR: Aug-Jul quarters (labeled by END year)
+    let fiscalYear, quarter, quarterName;
+
+    if (month >= 8 && month <= 10) {
+      // Aug-Sep-Oct = Q1
+      fiscalYear = year + 1;  // ✅ Ends in next year
+      quarter = 'Q1';
+      quarterName = 'Q1_Aug_Oct';
+      console.log(`📅 Aug-Oct ${year} → FY${fiscalYear} Q1`);
+
+    } else if (month >= 11 || month <= 1) {
+      // Nov-Dec-Jan = Q2
+      fiscalYear = month >= 11 ? year + 1 : year;  // ✅ Ends in year (or next if Nov/Dec)
+      quarter = 'Q2';
+      quarterName = 'Q2_Nov_Jan';
+      console.log(`📅 Nov-Jan ${year} → FY${fiscalYear} Q2`);
+
+    } else if (month >= 2 && month <= 4) {
+      // Feb-Mar-Apr = Q3
+      fiscalYear = year;  // ✅ Ends in same year
+      quarter = 'Q3';
+      quarterName = 'Q3_Feb_Apr';
+      console.log(`📅 Feb-Apr ${year} → FY${fiscalYear} Q3`);
+
     } else {
-      // Fallback for unknown date ranges
-      const today = new Date().toISOString().split('T')[0];
-      dateRangeStr = `Unknown_Range_${today}`;
+      // May-Jun-Jul = Q4
+      fiscalYear = year;  // ✅ Ends in same year
+      quarter = 'Q4';
+      quarterName = 'Q4_May_Jul';
+      console.log(`📅 May-Jul ${year} → FY${fiscalYear} Q4`);
     }
 
-    // Session folder: Amazon-DE/Session_001_2025-08-01_to_2025-10-31_Q1_Aug_Oct
-    const sessionFolder = `${marketplaceFolder}/${sessionPrefix}_${dateRangeStr}`;
-
-    // Extract month subfolder from invoice date
-    let monthSubfolder = '';
-    if (invoiceDate) {
-      try {
-        const date = new Date(invoiceDate);
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // 01-12
-        const monthName = date.toLocaleString('en-US', { month: 'long' }); // "August"
-
-        monthSubfolder = `/${year}-${month}_${monthName}`;
-        console.log(`📅 Monthly subfolder: ${monthSubfolder}`);
-      } catch (error) {
-        console.warn('⚠️ Could not parse invoice date:', invoiceDate, error);
-        monthSubfolder = '/Unknown_Month';
-      }
-    } else {
-      console.warn('⚠️ No invoice date provided, using root session folder');
-      monthSubfolder = '';
-    }
-
-    // Final path: Amazon_Invoices/Amazon-DE/Session_001_2025-08-01_to_2025-10-31_Q1_Aug_Oct/2025-08_August
-    const folderPath = `${baseFolderName}/${sessionFolder}${monthSubfolder}`;
+    // Build path with fiscal year
+    const folderPath = [
+      baseFolderName,
+      accountId,
+      `FY${fiscalYear}`, // e.g., FY2025
+      quarterName,
+      marketplace.toUpperCase()
+    ].join('/');
 
     console.log('📁 Final folder path:', folderPath);
     return folderPath;
@@ -346,30 +350,25 @@ class DownloadProcessor {
             }
           }
 
-          // Extract invoice date from filename for monthly subfolder
+          // Extract invoice date from filename
           let invoiceDate = null;
+
           try {
             const dateMatch = item.filename.match(/(\d{4}-\d{2}-\d{2})/);
             if (dateMatch) {
               invoiceDate = dateMatch[1];
-              console.log(`📅 Extracted invoice date from filename: ${invoiceDate}`);
-            } else {
-              console.warn(`⚠️ No date found in filename: ${item.filename}`);
+              console.log(`📅 Extracted invoice date: ${invoiceDate}`);
             }
           } catch (error) {
             console.warn('⚠️ Error extracting date from filename:', error);
           }
 
-          // Build the full nested folder path for this specific file
-          const sessionData = driveData.sessionData || {};
-          const folderPath = await this.buildFolderPath(
-            sessionData.marketplace || 'Unknown',
-            sessionData.startDate,
-            sessionData.endDate,
-            sessionData.dateRangeType,
-            sessionData.sessionNum || 1,
-            invoiceDate
-          );
+          // ✅ CHANGED: Use marketplace from item instead of extracting from filename
+          const marketplace = item.marketplace || 'Unknown';
+          console.log(`🌍 Using marketplace from item: ${marketplace}`);
+
+          // Build folder path using new structure
+          const folderPath = await this.buildFolderPath(marketplace, invoiceDate);
 
           console.log(`📁 Creating Drive folder path for ${item.filename}: ${folderPath}`);
 
@@ -533,16 +532,11 @@ class DownloadProcessor {
   /**
    * Process downloads with concurrency control
    */
-  async processDownloads(downloadItems, marketplace, concurrent, startDate, endDate, dateRangeType, googleDriveManager, metadataManager, downloadStateManager, sessionManager) {
+  async processDownloads(downloadItems, marketplace, concurrent, startDate, endDate, dateRangeType, googleDriveManager, metadataManager, downloadStateManager) {
     const startTime = Date.now();
     console.log(`📦 PROCESS DOWNLOADS FUNCTION CALLED - Processing ${downloadItems.length} downloads`);
     console.log('📦 Download items sample:', downloadItems.slice(0, 2));
     console.log('📦 Marketplace:', marketplace, 'Concurrent:', concurrent);
-
-    // Get next session number for this marketplace
-    console.log('📦 Getting session number...');
-    const sessionNum = await sessionManager.getNextSessionNumber(marketplace);
-    console.log('📦 Session number obtained:', sessionNum);
 
     // Initialize download state
     downloadStateManager.startDownload(downloadItems.length);
@@ -563,60 +557,19 @@ class DownloadProcessor {
     const failedDownloads = [];
     const downloadedItems = [];
 
-    // Get Google Drive token and create folder BEFORE downloading
+    // ✅ NEW: Simplified Drive token acquisition
     let driveToken = null;
-    let driveFolderId = null;
-
     try {
       console.log('🔑 Getting Google Drive token...');
       driveToken = await googleDriveManager.getGoogleDriveToken();
       console.log('✅ Got Drive token');
 
-      // Build proper nested folder structure for Google Drive (same as local)
-      const baseFolder = `Amazon-${marketplace}`;
-      const sessionPrefix = `Session_${String(sessionNum).padStart(3, '0')}`;
-      let dateRangeStr;
-      if (startDate && endDate && dateRangeType) {
-        dateRangeStr = `${startDate}_to_${endDate}_${dateRangeType}`;
-      } else {
-        const today = new Date().toISOString().split('T')[0];
-        dateRangeStr = `Unknown_Range_${today}`;
-      }
-      const sessionFolderPath = `${baseFolder}/${sessionPrefix}_${dateRangeStr}`;
-
-      // Get base folder from settings (default: 'Amazon_Invoices')
-      let baseFolderName = 'Amazon_Invoices';
-      try {
-        const settings = await OptionsManager.loadSettings();
-        if (settings.baseFolder) {
-          baseFolderName = settings.baseFolder;
-        }
-      } catch (error) {
-        console.warn('⚠️ Could not load baseFolder setting for Drive, using default:', error);
-      }
-
-      // Create nested folder structure in Google Drive
-      console.log(`📁 Creating nested Drive folder structure: ${baseFolderName}/${sessionFolderPath}`);
-      driveFolderId = await googleDriveManager.createNestedFolderPath(`${baseFolderName}/${sessionFolderPath}`, driveToken);
-      console.log(`✅ Drive folder ready: ${driveFolderId}`);
-
-      // Store tokens and session data in storage for reuse by downloadAndUploadPdf function
-      await chrome.storage.local.set({
-        driveToken: driveToken,
-        driveFolderId: driveFolderId,
-        sessionData: {
-          marketplace: marketplace,
-          startDate: startDate,
-          endDate: endDate,
-          dateRangeType: dateRangeType,
-          sessionNum: sessionNum
-        }
-      });
-      console.log('💾 Drive credentials and session data stored in local storage');
+      // Store token for reuse
+      await chrome.storage.local.set({ driveToken: driveToken });
+      console.log('💾 Drive token stored');
     } catch (error) {
       console.warn('⚠️ Google Drive setup failed, will only save locally:', error);
-      // Clear any stale credentials if setup failed
-      await chrome.storage.local.remove(['driveToken', 'driveFolderId']);
+      await chrome.storage.local.remove(['driveToken']);
     }
 
     // Process with concurrency limit
@@ -625,6 +578,12 @@ class DownloadProcessor {
 
       await Promise.all(batch.map(async (item) => {
         try {
+          // ✅ ADD THIS: Ensure marketplace is set on item
+          if (!item.marketplace) {
+            item.marketplace = marketplace;
+            console.log(`🌍 Added marketplace to item: ${marketplace}`);
+          }
+
           // Get the download URL (prioritize invoiceUrl over orders page url)
           const downloadUrl = item.invoiceUrl || item.url;
 
@@ -704,13 +663,9 @@ class DownloadProcessor {
             console.warn('⚠️ Error extracting date from filename:', error);
           }
 
-          // Build folder path with monthly subfolder
+          // Build folder path with quarterly subfolder
           const folderPath = await this.buildFolderPath(
             marketplace,
-            startDate,
-            endDate,
-            dateRangeType,
-            sessionNum,
             invoiceDate
           );
           const filename = `${folderPath}/${item.filename}`;
@@ -721,6 +676,7 @@ class DownloadProcessor {
               pdfUrl: finalPdfUrl,
               filename: item.filename,
               folderPath: filename,
+              marketplace: marketplace, // Explicitly pass marketplace
               ...item
             }, googleDriveManager, metadataManager);
 

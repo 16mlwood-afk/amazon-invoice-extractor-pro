@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Amazon Invoice Extractor Pro",
+  "name": "Bison Invoice Manager",
   "version": "2.1.0",
-  "description": "Professional Amazon invoice downloader with multi-marketplace support, advanced queue management, and automated organization",
-  "author": "Deal Detectives",
+  "description": "Professional invoice management with multi-marketplace support, advanced queue management, and automated fiscal year organization",
+  "author": "Bison Management",
   "permissions": [
     "storage",
     "downloads",
@@ -95,7 +95,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Amazon Invoice Extractor Pro"
+    "default_title": "Bison Invoice Manager"
   },
   "options_ui": {
     "page": "options.html",

@@ -100,27 +100,38 @@ function initializeAccountingPeriodSelector(startDateInput, endDateInput) {
 
   // Handle year selector changes
   const yearSelect = document.getElementById('yearSelect');
+  console.log('🔍 Setting up year selector, element found:', !!yearSelect);
   if (yearSelect) {
-    yearSelect.addEventListener('change', () => {
-      console.log('📅 Year changed to:', yearSelect.value);
+    yearSelect.addEventListener('change', (event) => {
+      console.log('📅 Year changed to:', event.target.value);
       // If a preset button is currently active, recalculate its dates
       const activeButton = document.querySelector('.preset-btn.active');
+      console.log('📊 Active button:', activeButton?.dataset?.preset);
       if (activeButton && activeButton.dataset.preset !== 'custom') {
         const preset = activeButton.dataset.preset;
         const dates = getAccountingPeriodDates(preset);
+        console.log('📅 Recalculated dates for', preset, ':', dates);
         if (dates) {
-          document.getElementById('startDate').value = dates.startDate;
-          document.getElementById('endDate').value = dates.endDate;
+          const startDateInput = document.getElementById('startDate');
+          const endDateInput = document.getElementById('endDate');
+          if (startDateInput) startDateInput.value = dates.startDate;
+          if (endDateInput) endDateInput.value = dates.endDate;
           updateDateSummary(new Date(dates.startDate), new Date(dates.endDate));
         }
       }
     });
+    console.log('✅ Year selector event listener attached');
+  } else {
+    console.error('❌ Year selector element not found!');
   }
 
   // Handle preset button clicks
-  document.querySelectorAll('.preset-btn').forEach(btn => {
+  const presetButtons = document.querySelectorAll('.preset-btn');
+  console.log('🔍 Found preset buttons:', presetButtons.length);
+  presetButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       const preset = btn.dataset.preset;
+      console.log('🎯 Preset button clicked:', preset);
 
       // Remove active class from all buttons
       document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
@@ -406,14 +417,163 @@ function updateDownloadModeHelp(mode) {
 
 // ============================================
 // MAIN INITIALIZATION
+// ========================================
+
+// ACCOUNT NAME MANAGEMENT
+
+// ========================================
+
+/**
+ * Load and display current account name
+ */
+async function loadAccountName() {
+  console.log('🔄 loadAccountName() called');
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'getAccountIdentifier'
+    });
+
+    console.log('📨 getAccountIdentifier response:', response);
+
+    if (response && response.success) {
+      // Display account name
+      console.log('📝 Setting account name in UI:', response.accountId);
+      document.getElementById('current-account-name').textContent = response.accountId;
+
+      // Update status badge
+      const statusBadge = document.getElementById('account-status-badge');
+      if (response.isCustomized) {
+        statusBadge.textContent = 'Custom';
+        statusBadge.className = 'badge custom';
+      } else {
+        statusBadge.textContent = 'Auto';
+        statusBadge.className = 'badge auto';
+      }
+      console.log('🏷️ Status badge updated:', response.isCustomized ? 'Custom' : 'Auto');
+    } else {
+      console.error('Failed to load account name:', response?.error);
+      document.getElementById('current-account-name').textContent = 'Error';
+      document.getElementById('account-status-badge').textContent = 'Error';
+      document.getElementById('account-status-badge').className = 'badge loading';
+    }
+  } catch (error) {
+    console.error('Error loading account name:', error);
+    document.getElementById('current-account-name').textContent = 'Error';
+  }
+}
+
+/**
+ * Handle edit account name button click
+ */
+document.getElementById('edit-account-btn')?.addEventListener('click', async (event) => {
+  console.log('🖱️ Edit account button clicked');
+  event.preventDefault();
+  event.stopPropagation();
+
+  const currentName = document.getElementById('current-account-name').textContent;
+
+  // Show prompt with examples
+  const newName = prompt(
+    '📁 Enter Account Name\n\n' +
+    'This name will be used to organize your invoices.\n\n' +
+    'Examples:\n' +
+    '  • Alice_Personal\n' +
+    '  • Account_Main\n' +
+    '  • Primary_Account\n' +
+    '  • Bob_Business\n\n' +
+    'Rules:\n' +
+    '  • Only letters, numbers, underscores (_), hyphens (-)\n' +
+    '  • Maximum 50 characters\n' +
+    '  • Will be cleaned automatically\n',
+    currentName
+  );
+
+  // User cancelled
+  if (newName === null) {
+    return;
+  }
+
+  // User entered empty string
+  if (newName.trim() === '') {
+    alert('❌ Account name cannot be empty.');
+    return;
+  }
+
+  try {
+    const response = await chrome.runtime.sendMessage({
+      action: 'setAccountName',
+      name: newName
+    });
+
+    if (response && response.success) {
+      // Show success message
+      const cleanedName = response.accountName;
+
+      // Show notification if name was cleaned
+      if (cleanedName !== newName) {
+        alert(
+          `✅ Account name updated!\n\n` +
+          `Original: ${newName}\n` +
+          `Cleaned:  ${cleanedName}\n\n` +
+          `All future downloads will use this name.`
+
+        );
+      } else {
+        alert(
+          `✅ Account name updated to: ${cleanedName}\n\n` +
+          `All future downloads will use this name.`
+        );
+      }
+
+      // Reload to show new name
+      await loadAccountName();
+
+    } else {
+      alert(`❌ Error: ${response?.error || 'Failed to update account name'}`);
+    }
+  } catch (error) {
+    alert(`❌ Error: ${error.message}`);
+  }
+});
+
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔄 DOMContentLoaded fired in popup.js');
 
+  // Load account name first
+  await loadAccountName();
+  console.log('✅ Account name loaded');
+
+  // Fiscal year info tooltip
+  const fyInfoIcon = document.getElementById('fyInfoIcon');
+  const fyInfoTooltip = document.getElementById('fyInfoTooltip');
+  const closeFyInfo = document.getElementById('closeFyInfo');
+
+  if (fyInfoIcon) {
+    fyInfoIcon.addEventListener('click', () => {
+      fyInfoTooltip.style.display = 'block';
+    });
+  }
+
+  if (closeFyInfo) {
+    closeFyInfo.addEventListener('click', () => {
+      fyInfoTooltip.style.display = 'none';
+    });
+  }
+
+  // Close on click outside
+  document.addEventListener('click', (e) => {
+    if (!fyInfoIcon?.contains(e.target) && !fyInfoTooltip?.contains(e.target)) {
+      if (fyInfoTooltip) fyInfoTooltip.style.display = 'none';
+    }
+  });
+
   // Load settings first
   await loadSettings();
+  console.log('✅ Settings loaded');
 
+  console.log('🚀 Calling window.initializePopup()');
   window.initializePopup();
 
   const activatedState = {
@@ -661,6 +821,14 @@ document.addEventListener('DOMContentLoaded', async function() {
   if (retryBtn) {
     retryBtn.addEventListener('click', window.retryFailed);
   }
+
+  // ============================================
+  // ACCOUNT SETTINGS FUNCTIONS
+  // ============================================
+
+  // Load account settings when popup opens - consolidated into loadAccountName()
+
+// Handle account name customization - REMOVED: This was a duplicate event listener
 
   // Listen for messages from background
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

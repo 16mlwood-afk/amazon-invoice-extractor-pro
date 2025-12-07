@@ -1640,3 +1640,190 @@
     transform: translateY(-10px);
   }
 }
+
+/* Account Settings Styles */
+.settings-section.account-settings {
+  margin: 15px 0;
+  padding: 15px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.settings-section.account-settings .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.settings-section.account-settings h3 {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.settings-section.account-settings .account-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.settings-section.account-settings .account-info {
+  flex: 1;
+}
+
+.settings-section.account-settings .account-info label {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.settings-section.account-settings .account-name-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-section.account-settings .account-name-display strong {
+  font-size: 14px;
+  color: #333;
+}
+
+.badge {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.badge.auto {
+  background: #ffc107;
+  color: #000;
+}
+
+.badge.custom {
+  background: #4caf50;
+  color: white;
+}
+
+.help-text {
+  font-size: 12px;
+  color: #666;
+  margin: 8px 0 0 0;
+}
+
+.btn-secondary {
+  padding: 6px 12px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
+}
+
+/* Info Icon */
+.info-icon {
+  display: inline-block;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 8px;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.info-icon:hover {
+  opacity: 1;
+}
+
+/* Info Tooltip */
+.info-tooltip {
+  position: absolute;
+  top: 50px;
+  right: 10px;
+  width: 320px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 1000;
+  animation: slideIn 0.2s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.tooltip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 15px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #ddd;
+  border-radius: 8px 8px 0 0;
+}
+
+.tooltip-content {
+  padding: 15px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.tooltip-content ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.tooltip-content li {
+  margin: 4px 0;
+}
+
+.example-path {
+  margin-top: 12px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.example-path code {
+  display: block;
+  margin-top: 5px;
+  padding: 5px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  font-family: monospace;
+  word-break: break-all;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  color: #333;
+}

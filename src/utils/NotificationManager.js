@@ -334,7 +334,7 @@ class NotificationManager {
   // Show download start notification
   notifyDownloadStart(totalInvoices, marketplace = 'Amazon') {
     this.showProgress(
-      'Amazon Invoice Downloader',
+      'Bison Invoice Manager',
       `Starting download of ${totalInvoices} invoices from ${marketplace}...`,
       0
     );

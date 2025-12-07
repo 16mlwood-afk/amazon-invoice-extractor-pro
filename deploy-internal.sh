@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Amazon Invoice Extractor Pro - Internal Deployment Script
+# Bison Invoice Manager - Internal Deployment Script
 # This script helps with internal distribution of the extension
 
 set -e
@@ -8,7 +8,7 @@ set -e
 # Extract version from package.json
 VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
 
-echo "🚀 Amazon Invoice Extractor Pro v${VERSION} - Internal Deployment"
+echo "🚀 Bison Invoice Manager v${VERSION} - Internal Deployment"
 echo "=========================================================="
 
 # Colors for output
@@ -47,7 +47,7 @@ echo "  Location: $(pwd)/dist"
 echo "  Size: $(du -sh dist | cut -f1)"
 echo "  Files: $(find dist -type f | wc -l) files"
 
-ZIP_FILE="amazon-invoice-extractor-pro-v${VERSION}.zip"
+ZIP_FILE="bison-invoice-manager-v${VERSION}.zip"
 if [ -f "$ZIP_FILE" ]; then
     echo "  ZIP: $(pwd)/$ZIP_FILE ($(du -sh "$ZIP_FILE" | cut -f1))"
 fi

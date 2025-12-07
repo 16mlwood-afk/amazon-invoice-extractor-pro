@@ -1,5 +1,5 @@
 // ===== CONTENT-MAIN.JS =====
-// Main entry point and initialization for Amazon Invoice Extractor
+// Main entry point and initialization for Bison Invoice Manager
 
 (async function() {
   // ===== PREVENT MULTIPLE INJECTIONS =====
@@ -1206,7 +1206,7 @@ window.diagnoseDownloadItems = async function() {
   }
 };
 
-console.log('🚀 Amazon Invoice Extractor - Content Script Loading...');
+console.log('🚀 Bison Invoice Manager - Content Script Loading...');
 console.log('  URL:', window.location.href);
 console.log('  Timestamp:', Date.now());
 console.log('  💡 Run diagnoseDownloadItems() in console to analyze URLs');

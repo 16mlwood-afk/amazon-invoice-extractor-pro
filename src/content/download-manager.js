@@ -3,10 +3,18 @@
 
 (function() {
   // ===== PREVENT MULTIPLE INJECTIONS =====
-  if (window.__amazonInvoiceExtensionLoaded) {
+  // Only check for multiple injections in content script context
+  if (typeof window !== 'undefined' && window.__amazonInvoiceExtensionLoaded) {
     // Silently exit if already loaded
     return;
   }
+
+// ===== UTILITY FUNCTIONS =====
+
+// Safe window origin getter for service worker compatibility
+function getWindowOrigin() {
+  return typeof window !== 'undefined' ? window.location.origin : undefined;
+}
 
 // ===== FILE ORGANIZER CLASS =====
 // Flexible output structure with user-configurable templates
@@ -43,7 +51,7 @@ class FileOrganizer {
       baseFolder: 'Amazon_Invoices',
       customPath: '',
       accountName: 'Personal',
-      marketplace: detectMarketplace(),
+      marketplace: this.safeDetectMarketplace(),
       includeTimestamp: false,
       sanitizeFilenames: true
     };
@@ -182,9 +190,36 @@ class FileOrganizer {
       .slice(0, 255);                          // Limit length
   }
 
-  // Detect current marketplace
+  // Detect current marketplace (safe for service worker context)
   detectMarketplace() {
-    return detectMarketplace();
+    return this.safeDetectMarketplace();
+  }
+
+  // Safe marketplace detection that works in both content script and service worker contexts
+  safeDetectMarketplace() {
+    try {
+      // Try to use the global detectMarketplace function if available (content script)
+      if (typeof detectMarketplace === 'function') {
+        return detectMarketplace();
+      }
+
+      // Fallback: try to detect from URL if window is available
+      if (typeof window !== 'undefined' && window.location) {
+        const url = window.location.href || '';
+        if (url.includes('amazon.de')) return 'DE';
+        if (url.includes('amazon.fr')) return 'FR';
+        if (url.includes('amazon.nl')) return 'NL';
+        if (url.includes('amazon.co.uk')) return 'UK';
+        if (url.includes('amazon.it')) return 'IT';
+        return 'COM';
+      }
+
+      // Ultimate fallback for service worker context
+      return 'COM';
+    } catch (error) {
+      console.warn('⚠️ Error detecting marketplace, using fallback:', error);
+      return 'COM';
+    }
   }
 }
 
@@ -278,7 +313,7 @@ class NotificationManager {
   // Show download start notification
   notifyDownloadStart(totalInvoices, marketplace = 'Amazon') {
     this.showProgress(
-      'Amazon Invoice Downloader',
+      'Bison Invoice Manager',
       `Starting download of ${totalInvoices} invoices from ${marketplace}...`,
       0
     );
@@ -705,9 +740,11 @@ class DownloadQueue {
           // Convert relative URLs to absolute URLs
           let absoluteUrl = href;
           if (href.startsWith('/')) {
-            const currentOrigin = window.location.origin;
-            absoluteUrl = `${currentOrigin}${href}`;
-            console.log(`🔗 Converted PDF relative URL to absolute: ${absoluteUrl}`);
+            const currentOrigin = getWindowOrigin();
+            if (currentOrigin) {
+              absoluteUrl = `${currentOrigin}${href}`;
+              console.log(`🔗 Converted PDF relative URL to absolute: ${absoluteUrl}`);
+            }
           }
 
           return absoluteUrl;
@@ -724,9 +761,11 @@ class DownloadQueue {
           // Convert relative URLs to absolute URLs
           let absoluteUrl = href;
           if (href.startsWith('/')) {
-            const currentOrigin = window.location.origin;
-            absoluteUrl = `${currentOrigin}${href}`;
-            console.log(`🔗 Converted download relative URL to absolute: ${absoluteUrl}`);
+            const currentOrigin = getWindowOrigin();
+            if (currentOrigin) {
+              absoluteUrl = `${currentOrigin}${href}`;
+              console.log(`🔗 Converted download relative URL to absolute: ${absoluteUrl}`);
+            }
           }
 
           return absoluteUrl;
@@ -743,9 +782,11 @@ class DownloadQueue {
           // Convert relative URLs to absolute URLs
           let absoluteUrl = href;
           if (href.startsWith('/')) {
-            const currentOrigin = window.location.origin;
-            absoluteUrl = `${currentOrigin}${href}`;
-            console.log(`🔗 Converted fallback relative URL to absolute: ${absoluteUrl}`);
+            const currentOrigin = getWindowOrigin();
+            if (currentOrigin) {
+              absoluteUrl = `${currentOrigin}${href}`;
+              console.log(`🔗 Converted fallback relative URL to absolute: ${absoluteUrl}`);
+            }
           }
 
           return absoluteUrl;
@@ -762,9 +803,11 @@ class DownloadQueue {
           // Convert relative URLs to absolute URLs
           let absoluteUrl = src;
           if (src.startsWith('/')) {
-            const currentOrigin = window.location.origin;
-            absoluteUrl = `${currentOrigin}${src}`;
-            console.log(`🔗 Converted PDF iframe relative URL to absolute: ${absoluteUrl}`);
+            const currentOrigin = getWindowOrigin();
+            if (currentOrigin) {
+              absoluteUrl = `${currentOrigin}${src}`;
+              console.log(`🔗 Converted PDF iframe relative URL to absolute: ${absoluteUrl}`);
+            }
           }
 
           return absoluteUrl;
@@ -781,9 +824,11 @@ class DownloadQueue {
           // Convert relative URLs to absolute URLs
           let absoluteUrl = href;
           if (href.startsWith('/')) {
-            const currentOrigin = window.location.origin;
-            absoluteUrl = `${currentOrigin}${href}`;
-            console.log(`🔗 Converted order-specific PDF relative URL to absolute: ${absoluteUrl}`);
+            const currentOrigin = getWindowOrigin();
+            if (currentOrigin) {
+              absoluteUrl = `${currentOrigin}${href}`;
+              console.log(`🔗 Converted order-specific PDF relative URL to absolute: ${absoluteUrl}`);
+            }
           }
 
           return absoluteUrl;
@@ -800,9 +845,11 @@ class DownloadQueue {
           // Convert relative URLs to absolute URLs
           let absoluteUrl = href;
           if (href.startsWith('/')) {
-            const currentOrigin = window.location.origin;
-            absoluteUrl = `${currentOrigin}${href}`;
-            console.log(`🔗 Converted order-specific download relative URL to absolute: ${absoluteUrl}`);
+            const currentOrigin = getWindowOrigin();
+            if (currentOrigin) {
+              absoluteUrl = `${currentOrigin}${href}`;
+              console.log(`🔗 Converted order-specific download relative URL to absolute: ${absoluteUrl}`);
+            }
           }
 
           return absoluteUrl;
@@ -836,10 +883,12 @@ class DownloadQueue {
           console.log(`🎯 Found relative PDF download URL via regex: ${relativeUrl}`);
 
           // Convert to absolute URL
-          const currentOrigin = window.location.origin;
-          const absoluteUrl = `${currentOrigin}${relativeUrl}`;
-          console.log(`🔗 Converted regex-found PDF download relative URL to absolute: ${absoluteUrl}`);
-          return absoluteUrl;
+          const currentOrigin = getWindowOrigin();
+          if (currentOrigin) {
+            const absoluteUrl = `${currentOrigin}${relativeUrl}`;
+            console.log(`🔗 Converted regex-found PDF download relative URL to absolute: ${absoluteUrl}`);
+            return absoluteUrl;
+          }
         }
       }
 
@@ -854,10 +903,12 @@ class DownloadQueue {
           console.log(`📎 Found relative PDF URL via regex: ${relativeUrl}`);
 
           // Convert to absolute URL
-          const currentOrigin = window.location.origin;
-          const absoluteUrl = `${currentOrigin}${relativeUrl}`;
-          console.log(`🔗 Converted regex-found relative URL to absolute: ${absoluteUrl}`);
-          return absoluteUrl;
+          const currentOrigin = getWindowOrigin();
+          if (currentOrigin) {
+            const absoluteUrl = `${currentOrigin}${relativeUrl}`;
+            console.log(`🔗 Converted regex-found relative URL to absolute: ${absoluteUrl}`);
+            return absoluteUrl;
+          }
         }
       }
 
@@ -951,7 +1002,7 @@ function generateOrganizedFilename(orderId, orderDate = null, index = 0) {
   };
 
   return fileOrganizer.generatePath(item, {
-    marketplace: detectMarketplace()
+    marketplace: fileOrganizer.safeDetectMarketplace()
   });
 }
 
@@ -983,15 +1034,17 @@ async function initiateDownload(url, filename, orderId) {
   });
 }
 
-// Export classes and functions to global scope
-window.FileOrganizer = FileOrganizer;
-window.NotificationManager = NotificationManager;
-window.BandwidthManager = BandwidthManager;
-window.DownloadQueue = DownloadQueue;
-window.fileOrganizer = fileOrganizer;
-window.notificationManager = notificationManager;
-window.bandwidthManager = bandwidthManager;
-window.generateOrganizedFilename = generateOrganizedFilename;
-window.checkDuplicate = checkDuplicate;
-window.initiateDownload = initiateDownload;
+// Export classes and functions to global scope (only in content script context)
+if (typeof window !== 'undefined') {
+  window.FileOrganizer = FileOrganizer;
+  window.NotificationManager = NotificationManager;
+  window.BandwidthManager = BandwidthManager;
+  window.DownloadQueue = DownloadQueue;
+  window.fileOrganizer = fileOrganizer;
+  window.notificationManager = notificationManager;
+  window.bandwidthManager = bandwidthManager;
+  window.generateOrganizedFilename = generateOrganizedFilename;
+  window.checkDuplicate = checkDuplicate;
+  window.initiateDownload = initiateDownload;
+}
 })();

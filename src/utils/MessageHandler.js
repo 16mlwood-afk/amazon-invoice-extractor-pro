@@ -214,8 +214,7 @@ class MessageHandler {
           request.dateRangeType,
           this.googleDriveManager,
           this.metadataManager,
-          this.downloadStateManager,
-          this.sessionManager
+          this.downloadStateManager
         ).then(() => {
           logger.info('Download processing completed successfully', {
             itemCount: request.downloadItems.length,
@@ -1258,6 +1257,44 @@ class MessageHandler {
         return { success: true };
       } catch (error) {
         console.error('Failed to show completion notification:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // GET ACCOUNT IDENTIFIER
+    this.registerHandler('getAccountIdentifier', async (request) => {
+      try {
+        const profileManager = new ProfileManager();
+        const accountId = await profileManager.getAccountIdentifier();
+        const isCustomized = await profileManager.isCustomized();
+
+        return {
+          success: true,
+          accountId: accountId,
+          isCustomized: isCustomized
+        };
+      } catch (error) {
+        console.error('Error getting account identifier:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // SET ACCOUNT NAME
+    this.registerHandler('setAccountName', async (request) => {
+      try {
+        if (!request.name) {
+          throw new Error('Account name is required');
+        }
+
+        const profileManager = new ProfileManager();
+        const sanitized = await profileManager.setAccountName(request.name);
+
+        return {
+          success: true,
+          accountName: sanitized
+        };
+      } catch (error) {
+        console.error('Error setting account name:', error);
         return { success: false, error: error.message };
       }
     });

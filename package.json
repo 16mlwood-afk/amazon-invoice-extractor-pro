@@ -1,8 +1,8 @@
 {
-  "name": "amazon-invoice-extractor-pro",
+  "name": "bison-invoice-manager",
   "version": "2.1.0",
-  "description": "Professional Amazon invoice downloader with multi-marketplace support, advanced queue management, automated organization, structured logging, and performance monitoring",
-  "author": "Deal Detectives",
+  "description": "Professional invoice management system with multi-marketplace support, advanced queue management, automated fiscal year organization, structured logging, and performance monitoring",
+  "author": "Bison Management",
   "license": "MIT",
   "repository": {
     "type": "git",

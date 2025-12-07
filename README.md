@@ -1,6 +1,6 @@
-# Amazon Invoice Extractor Pro v2.0.1
+# Bison Invoice Manager v2.1.0
 
-Professional Amazon invoice downloader with multi-marketplace support, advanced queue management, and automated organization.
+Professional invoice management system with multi-marketplace support, advanced queue management, and automated fiscal year organization.
 
 ## 🚀 Features
 

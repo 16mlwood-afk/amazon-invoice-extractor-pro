@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Deal Detectives - Invoice Downloader</title>
+  <title>Bison Invoice Manager</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -25,17 +25,64 @@
     <header class="header">
       <div class="logo-section">
         <div class="logo-icon">
-          <img src="images/logo.png" alt="Deal Detectives Logo" id="logo">
+          <img src="images/logo.png" alt="Bison Management Logo" id="logo">
         </div>
         <div class="logo-text">
-          <h1 class="brand-name">Deal Detectives</h1>
-          <p class="brand-tagline">Invoice Downloader</p>
+          <h1 class="brand-name">Bison Management</h1>
+          <p class="brand-tagline">Invoice Manager</p>
         </div>
       </div>
     </header>
 
     <!-- Main Content - Core Download Functionality -->
     <main id="mainContent">
+      <!-- Account Settings Section -->
+      <div class="settings-section account-settings">
+        <div class="section-header">
+          <h3>📁 Account Settings</h3>
+          <span class="info-icon" id="fyInfoIcon" title="Click for details">ℹ️</span>
+        </div>
+
+        <div class="account-display">
+          <div class="account-info">
+            <label>This profile saves invoices as:</label>
+            <div class="account-name-display">
+              <strong id="current-account-name">Loading...</strong>
+              <span id="account-status-badge" class="badge">Auto</span>
+            </div>
+          </div>
+          <button id="edit-account-btn" class="btn-secondary" title="Change account name">
+            ✏️ Edit
+          </button>
+        </div>
+
+        <!-- Fiscal Year Info Tooltip (hidden by default) -->
+        <div id="fyInfoTooltip" class="info-tooltip" style="display: none;">
+          <div class="tooltip-header">
+            <strong>📁 Folder Organization</strong>
+            <button id="closeFyInfo" class="close-btn">×</button>
+          </div>
+          <div class="tooltip-content">
+            <p><strong>Fiscal Year:</strong> August to July</p>
+            <p><strong>FY2025 includes:</strong></p>
+            <ul>
+              <li>Q1: Aug-Oct 2024</li>
+              <li>Q2: Nov 2024 - Jan 2025</li>
+              <li>Q3: Feb-Apr 2025</li>
+              <li>Q4: May-Jul 2025</li>
+            </ul>
+            <p class="example-path">
+              <strong>Example path:</strong><br>
+              <code>Amazon_Invoices/YourName/FY2025/Q3_Feb_Apr/DE/</code>
+            </p>
+          </div>
+        </div>
+
+        <p class="help-text">
+          💡 Each Chrome profile saves to a separate folder. Use descriptive names like "Alice_Personal" or "Account_Main".
+        </p>
+      </div>
+
       <!-- Account type selector (hidden for state management) -->
       <div class="hidden-form" style="display: none;">
         <select id="accountType" class="form-select">

@@ -4,6 +4,14 @@ importScripts('utils/LicenseManager.js');
 // Import OptionsManager first (needed by DownloadProcessor)
 importScripts('utils/OptionsManager.js');
 
+// Import ProfileManager for account-based organization
+importScripts('managers/ProfileManager.js');
+
+console.log('✅ ProfileManager loaded:', typeof ProfileManager);
+
+// Import download-manager.js for FileOrganizer
+importScripts('content/download-manager.js');
+
 importScripts('utils/SessionManager.js');
 importScripts('state/DownloadStateManager.js');
 importScripts('utils/ContentScriptManager.js');
@@ -36,6 +44,7 @@ chrome.runtime.onInstalled.addListener(() => {
 
 // ===== INITIALIZE MANAGERS =====
 const optionsManager = new OptionsManager();
+const profileManager = new ProfileManager();
 const sessionManager = new SessionManager();
 const contentScriptManager = new ContentScriptManager();
 const notificationManager = new NotificationManager();

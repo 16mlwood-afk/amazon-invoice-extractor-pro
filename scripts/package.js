@@ -53,6 +53,7 @@ const INCLUDE_FILES = [
 
   // Modules
   { src: 'src/utils/', dest: 'utils/' },
+  { src: 'src/managers/', dest: 'managers/' },
   { src: 'src/config/', dest: 'config/' },
   { src: 'src/handlers/', dest: 'handlers/' },
   { src: 'src/state/', dest: 'state/' }
