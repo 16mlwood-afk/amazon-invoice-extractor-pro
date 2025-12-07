@@ -5,7 +5,7 @@ importScripts('utils/LicenseManager.js');
 importScripts('utils/OptionsManager.js');
 
 // Import ProfileManager for account-based organization
-importScripts('managers/ProfileManager.js');
+importScripts('core/managers/ProfileManager.js');
 
 console.log('✅ ProfileManager loaded:', typeof ProfileManager);
 
@@ -21,7 +21,7 @@ importScripts('utils/DownloadProcessor.js');
 importScripts('utils/HistoryManager.js');
 importScripts('utils/HealthChecker.js');
 importScripts('utils/MetadataManager.js');
-importScripts('utils/GoogleDriveManager.js');
+importScripts('core/services/GoogleDriveManager.js');
 importScripts('utils/NotificationManager.js');
 importScripts('utils/PerformanceMonitor.js');
 importScripts('utils/MessageHandler.js');

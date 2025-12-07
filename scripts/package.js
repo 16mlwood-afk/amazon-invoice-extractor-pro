@@ -44,18 +44,14 @@ const INCLUDE_FILES = [
   { src: 'src/content/order-scraper.js', dest: 'order-scraper.js' },
   { src: 'src/content/content-main.js', dest: 'content-main.js' },
   { src: 'src/background/background.js', dest: 'background.js' },
-  'src/businessInvoices.js',
-  'src/nonBusinessInvoices.js',
-  'src/pdfDownloader.js',
-  'src/tax-bundle.js',
-  'src/taxInvoices.js',
   'src/common.js',
+
+  // Core business logic
+  { src: 'src/core/', dest: 'core/' },
 
   // Modules
   { src: 'src/utils/', dest: 'utils/' },
-  { src: 'src/managers/', dest: 'managers/' },
   { src: 'src/config/', dest: 'config/' },
-  { src: 'src/handlers/', dest: 'handlers/' },
   { src: 'src/state/', dest: 'state/' }
 ];
 
