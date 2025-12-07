@@ -36,11 +36,50 @@ This project follows a clean, organized structure for maintainability:
 │   ├── background/               # Background service worker
 │   │   └── background.js
 │   ├── content/                  # Content scripts
-│   │   └── content.js
+│   │   ├── content-main.js       # Main content script
+│   │   ├── download-manager.js   # Download coordination
+│   │   ├── helpers.js            # Content script utilities
+│   │   ├── order-scraper.js      # Order data extraction
+│   │   └── pagination-manager.js # Page navigation handling
+│   ├── core/                     # Business logic & integrations
+│   │   ├── handlers/             # Request handlers
+│   │   │   └── BusinessInvoiceHandler.js
+│   │   ├── managers/             # Business logic managers
+│   │   │   └── ProfileManager.js # Account management
+│   │   ├── services/             # External integrations
+│   │   │   └── GoogleDriveManager.js
+│   │   └── types/                # Invoice type handlers
+│   │       ├── businessInvoices.js
+│   │       ├── nonBusinessInvoices.js
+│   │       ├── pdfDownloader.js
+│   │       ├── taxInvoices.js
+│   │       └── tax-bundle.js
 │   ├── popup/                    # Extension popup UI
 │   │   ├── popup.html
 │   │   ├── popup.js
-│   │   └── popup.css
+│   │   ├── popup.css
+│   │   ├── modules/              # Popup-specific modules
+│   │   │   ├── advanced-options.js
+│   │   │   ├── download-preview.js
+│   │   │   ├── popup-sync.js
+│   │   │   ├── progress-tracking.js
+│   │   │   ├── retry.js
+│   │   │   ├── state-management.js
+│   │   │   ├── state-transitions.js
+│   │   │   └── ui-helpers.js
+│   │   └── styles/               # Popup-specific styles
+│   │       ├── animations.css
+│   │       ├── card-components.css
+│   │       ├── design-system.css
+│   │       ├── form-styles.css
+│   │       ├── header.css
+│   │       ├── state-ui.css
+│   │       └── toast-messages.css
+│   ├── options/                  # Options/settings page
+│   │   ├── options.html
+│   │   ├── options.js
+│   │   ├── options.css
+│   │   └── settings.css
 │   ├── options/                  # Options/settings page
 │   │   ├── options.html
 │   │   ├── options.js
@@ -49,30 +88,35 @@ This project follows a clean, organized structure for maintainability:
 │   ├── history/                  # Download history page
 │   │   ├── history.html
 │   │   └── history.js
-│   ├── utils/                    # Utility modules
+│   ├── utils/                    # Shared utility modules
 │   │   ├── BandwidthManager.js
+│   │   ├── ContentScriptManager.js
 │   │   ├── DOMQueryHelper.js
+│   │   ├── DownloadCoordinator.js
+│   │   ├── DownloadProcessor.js
 │   │   ├── DownloadQueue.js
 │   │   ├── ErrorHandler.js
 │   │   ├── FileOrganizer.js
 │   │   ├── HealthChecker.js
 │   │   ├── HistoryManager.js
+│   │   ├── LicenseManager.js
+│   │   ├── Logger.js
 │   │   ├── MarketplaceCoordinator.js
+│   │   ├── MessageHandler.js
 │   │   ├── MetadataManager.js
+│   │   ├── NavigationManager.js
 │   │   ├── NotificationManager.js
-│   │   └── ScriptLoader.js
-│   ├── handlers/                 # Invoice handlers
-│   │   └── BusinessInvoiceHandler.js
-│   ├── state/                    # State management
-│   │   └── DownloadState.js
-│   ├── config/                   # Configuration
+│   │   ├── OptionsManager.js
+│   │   ├── OrderDataExtractor.js
+│   │   ├── PerformanceMonitor.js
+│   │   ├── ScriptLoader.js
+│   │   └── SessionManager.js
+│   ├── config/                   # Configuration files
 │   │   └── Config.js
-│   ├── businessInvoices.js       # Business account handler
-│   ├── nonBusinessInvoices.js    # Consumer account handler
-│   ├── pdfDownloader.js          # PDF download utilities
-│   ├── tax-bundle.js             # Tax invoice handler
-│   ├── taxInvoices.js            # Tax invoice processor
-│   └── common.js                 # Shared utilities
+│   ├── state/                    # State management
+│   │   ├── DownloadState.js
+│   │   └── DownloadStateManager.js
+│   └── common.js                 # Shared constants and utilities
 ├── public/                       # Static assets
 │   ├── manifest.json             # Extension manifest
 │   └── images/                   # Icons and images
